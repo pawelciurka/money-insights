@@ -3,11 +3,19 @@ from turtle import width
 import streamlit as st
 import pandas as pd
 from project.parsers import parse_directory_as_df
-from project.settings import ROOT_INPUT_FILES_DIR
+from project.settings import (
+    TRANSACTIONS_FILES_DIR,
+    CATEGORIES_RULES_FILE_PATH,
+    project_dir,
+)
 import plotly.graph_objs as go
 from enum import Enum
+import os
+import tempfile
 
 st.set_page_config(layout="wide")
+
+now = datetime.now()
 
 
 class TimeInterval(Enum):
@@ -16,39 +24,17 @@ class TimeInterval(Enum):
     YEAR = 3
 
 
-# @st.cache
-def read_input_df():
-    return parse_directory_as_df(ROOT_INPUT_FILES_DIR)
+@st.cache
+def read_all_transactions() -> pd.DataFrame:
+    df = parse_directory_as_df(TRANSACTIONS_FILES_DIR, CATEGORIES_RULES_FILE_PATH)
+    return df
 
 
 def get_time_aggregated_expenses_df(
-    input_df,
+    input_df: pd.DataFrame,
     frequency=None,
-    start_date=None,
-    end_date=None,
-    group_by_col=None,
-    n_biggest_groups=10,
-    filters=None,
-):
+) -> pd.DataFrame:
 
-    # filter
-    input_df = input_df[input_df["type"] == "outcome"].copy()
-    if start_date and end_date:
-        input_df = input_df[
-            (input_df["transaction_date"] >= start_date)
-            & (input_df["transaction_date"] <= end_date)
-        ]
-
-    group_names = (
-        input_df.groupby(group_by_col)["amount_abs"]
-        .sum()
-        .sort_values(ascending=False)[:n_biggest_groups]
-    )
-    group_map = {g: g for g, _ in group_names.iteritems()}
-
-    input_df["group_value"] = input_df[group_by_col].map(
-        lambda x: group_map.get(x, "other")
-    )
     # group by time and aggregate
     out_df = (
         input_df.groupby(
@@ -60,6 +46,7 @@ def get_time_aggregated_expenses_df(
         .apply(sum)
         .reset_index()
         .pivot(index="transaction_date", columns="group_value", values="amount_abs")
+        .fillna(0.0)
     )
     return out_df
 
@@ -75,12 +62,23 @@ def get_barplot(df):
     return fig
 
 
-expenses = st.container()
-debug = st.container()
+def get_significant_group_values(
+    transactions_df: pd.DataFrame, group_by_col: str, n_biggest_groups: int
+) -> set:
+    biggest_groups_names = (
+        transactions_df.groupby(group_by_col)["amount_abs"]
+        .sum()
+        .sort_values(ascending=False)[:n_biggest_groups]
+    )
+    return {g for g, _ in biggest_groups_names.iteritems()}
 
 
 def date_to_datetime(date):
     return datetime(date.year, date.month, date.day)
+
+
+expenses = st.container()
+debug = st.container()
 
 
 with expenses:
@@ -95,24 +93,39 @@ with expenses:
     )
     group_by_col = st.selectbox(
         "Group by",
-        ("one_group", "contractor", "account_name"),
+        ("one_group", "contractor", "account_name", "category"),
         index=0,
         format_func=lambda x: {"one_group": "None"}.get(x, x),
     )
+    n_biggest_groups = st.slider(
+        "Number of groups", min_value=1, max_value=50, value=7, step=1
+    )
+
     c1, c2 = st.columns(2)
     with c1:
-        start_date = st.date_input("Start", value=datetime(datetime.now().year, 1, 1))
+        start_year = now.year if now.month > 1 else now.year - 1
+        start_date = st.date_input("Start Date", value=datetime(start_year, 1, 1))
     with c2:
         end_date = st.date_input("End Date")
 
-    # plot-ready data retrieval
-    input_df = read_input_df()
+    all_transactions_df = read_all_transactions()
+    transactions_mask = (
+        (all_transactions_df["type"] == "outcome")
+        & (all_transactions_df["transaction_date"] >= date_to_datetime(start_date))
+        & (all_transactions_df["transaction_date"] <= date_to_datetime(end_date))
+    )
+    selected_transactions_df = all_transactions_df[transactions_mask]
+
+    biggest_groups_values = get_significant_group_values(
+        selected_transactions_df, group_by_col, n_biggest_groups=n_biggest_groups
+    )
+    selected_transactions_df["group_value"] = selected_transactions_df[
+        group_by_col
+    ].map(lambda group: group if group in biggest_groups_values else "other")
+
     _df = get_time_aggregated_expenses_df(
-        input_df,
+        selected_transactions_df,
         frequency=frequency,
-        group_by_col=group_by_col,
-        start_date=date_to_datetime(start_date),
-        end_date=date_to_datetime(end_date),
     )
 
     # plot
@@ -120,8 +133,24 @@ with expenses:
     st.plotly_chart(fig, use_container_width=True)
 
     # table
-    st.write(_df.transpose())
+    st.dataframe(_df.transpose())
 
-with debug:
-    st.title("debug")
-    st.write(read_input_df())
+    # transactions_table
+    st.title("Transactions")
+    with st.expander("Open to see transactions table"):
+        st.dataframe(selected_transactions_df)
+        if st.button("Save transactions to CSV"):
+            transaction_dumps_dir = os.path.join(
+                project_dir, "data", "dumps", "transactions"
+            )
+            os.makedirs(transaction_dumps_dir, exist_ok=True)
+            file_prefix = f"{now.year:04d}_{now.month:02d}_{now.day:02d}_{now.hour:02d}_{now.minute:02d}"
+            with tempfile.NamedTemporaryFile(
+                "w",
+                dir=transaction_dumps_dir,
+                delete=False,
+                prefix=file_prefix,
+                suffix=".csv",
+            ) as f:
+                selected_transactions_df.to_csv(f)
+                st.write(f"Saved in {f.name}")
