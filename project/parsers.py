@@ -69,10 +69,10 @@ class Condition:
 
     def evaluate(self, other: str):
         def equals(other):
-            return other == self.value
+            return str(other) == self.value
 
         def contains(other: str):
-            return other in self.value
+            return self.value in str(other)
 
         return {"equals": equals, "contains": contains}[self.relation.name](other)
 

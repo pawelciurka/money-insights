@@ -78,13 +78,11 @@ def date_to_datetime(date):
 
 
 expenses = st.container()
-debug = st.container()
 
 
 with expenses:
     st.title("Expense visualization")
 
-    # inputs
     frequency = st.selectbox(
         "Frequency",
         ("1D", "1M", "1Y"),
@@ -96,9 +94,6 @@ with expenses:
         ("one_group", "contractor", "account_name", "category"),
         index=0,
         format_func=lambda x: {"one_group": "None"}.get(x, x),
-    )
-    n_biggest_groups = st.slider(
-        "Number of groups", min_value=1, max_value=50, value=7, step=1
     )
 
     c1, c2 = st.columns(2)
@@ -116,6 +111,19 @@ with expenses:
     )
     selected_transactions_df = all_transactions_df[transactions_mask]
 
+    unique_categories = list(set(selected_transactions_df["category"]))
+    default_categories = [c for c in unique_categories if c != "own-transfer"]
+    categories = st.multiselect(
+        "Categories", unique_categories, default=default_categories
+    )
+
+    selected_transactions_df = selected_transactions_df[
+        selected_transactions_df["category"].isin(categories)
+    ]
+
+    n_biggest_groups = st.slider(
+        "Number of groups", min_value=1, max_value=50, value=7, step=1
+    )
     biggest_groups_values = get_significant_group_values(
         selected_transactions_df, group_by_col, n_biggest_groups=n_biggest_groups
     )
@@ -144,7 +152,7 @@ with expenses:
                 project_dir, "data", "dumps", "transactions"
             )
             os.makedirs(transaction_dumps_dir, exist_ok=True)
-            file_prefix = f"{now.year:04d}_{now.month:02d}_{now.day:02d}_{now.hour:02d}_{now.minute:02d}"
+            file_prefix = f"{now.year:04d}_{now.month:02d}_{now.day:02d}_{now.hour:02d}_{now.minute:02d}_"
             with tempfile.NamedTemporaryFile(
                 "w",
                 dir=transaction_dumps_dir,
@@ -152,5 +160,5 @@ with expenses:
                 prefix=file_prefix,
                 suffix=".csv",
             ) as f:
-                selected_transactions_df.to_csv(f)
+                selected_transactions_df.to_csv(f, index=False, line_terminator="\n")
                 st.write(f"Saved in {f.name}")
