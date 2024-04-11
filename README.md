@@ -5,4 +5,9 @@ Analysis of spendings
 `pytest .`
 
 # run app
+`.\venv\Scripts\activate`
 `streamlit run .\project\app.py`
+
+# demo
+![]()
+
