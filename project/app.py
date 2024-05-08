@@ -2,7 +2,12 @@ from datetime import datetime
 from turtle import width
 import streamlit as st
 import pandas as pd
-from project.parsers import parse_directory_as_df
+from project.parsers import (
+    parse_directory_as_df,
+    add_columns,
+    read_categories_rules,
+    filter_transactions_date_range,
+)
 from project.settings import (
     TRANSACTIONS_FILES_DIR,
     CATEGORIES_RULES_FILE_PATH,
@@ -12,6 +17,11 @@ import plotly.graph_objs as go
 from enum import Enum
 import os
 import tempfile
+import logging
+import random 
+
+log = logging.getLogger(__name__)
+
 
 st.set_page_config(layout="wide")
 
@@ -25,8 +35,8 @@ class TimeInterval(Enum):
 
 
 @st.cache
-def read_all_transactions() -> pd.DataFrame:
-    df = parse_directory_as_df(TRANSACTIONS_FILES_DIR, CATEGORIES_RULES_FILE_PATH)
+def read_raw_transactions() -> pd.DataFrame:
+    df = parse_directory_as_df(TRANSACTIONS_FILES_DIR)
     return df
 
 
@@ -35,14 +45,13 @@ def get_time_aggregated_expenses_df(
     frequency=None,
 ) -> pd.DataFrame:
 
+    groupers = []
+    groupers.append(pd.Grouper(key="group_value"))
+    groupers.append(pd.Grouper(key="transaction_date", freq=frequency, label="left"))
+
     # group by time and aggregate
     out_df = (
-        input_df.groupby(
-            [
-                pd.Grouper(key="transaction_date", freq=frequency, label="left"),
-                pd.Grouper(key="group_value"),
-            ]
-        )["amount_abs"]
+        input_df.groupby(groupers)["amount_abs"]
         .apply(sum)
         .reset_index()
         .pivot(index="transaction_date", columns="group_value", values="amount_abs")
@@ -73,11 +82,12 @@ def get_significant_group_values(
     return {g for g, _ in biggest_groups_names.iteritems()}
 
 
-def date_to_datetime(date):
-    return datetime(date.year, date.month, date.day)
-
-
 expenses = st.container()
+
+
+@st.cache
+def _add_columns(raw_transactions_df, categories_rules):
+    return add_columns(raw_transactions_df, categories_rules)
 
 
 with expenses:
@@ -85,8 +95,15 @@ with expenses:
 
     frequency = st.selectbox(
         "Frequency",
-        ("1D", "1M", "1Y"),
-        format_func=lambda x: {"1D": "Day", "1M": "Month", "1Y": "Year"}.get(x),
+        ("1D", "1M", "1Y", "5Y", "10Y", "20Y"),
+        format_func=lambda x: {
+            "1D": "Day",
+            "1M": "Month",
+            "1Y": "Year",
+            "5Y": "5 Years",
+            "10Y": "10 Years",
+            "20Y": "20 Years",
+        }.get(x),
         index=1,
     )
     group_by_col = st.selectbox(
@@ -103,50 +120,61 @@ with expenses:
     with c2:
         end_date = st.date_input("End Date")
 
-    all_transactions_df = read_all_transactions()
-    transactions_mask = (
-        (all_transactions_df["type"] == "outcome")
-        & (all_transactions_df["transaction_date"] >= date_to_datetime(start_date))
-        & (all_transactions_df["transaction_date"] <= date_to_datetime(end_date))
-    )
-    selected_transactions_df = all_transactions_df[transactions_mask]
+    categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
 
-    unique_categories = list(set(selected_transactions_df["category"]))
-    default_categories = [c for c in unique_categories if c != "own-transfer"]
+    all_categories = sorted(list(set([cr.category for cr in categories_rules])))
+    default_categories = [c for c in all_categories if c != "own-transfer"]
+
     categories = st.multiselect(
-        "Categories", unique_categories, default=default_categories
+        "Categories", all_categories, default=default_categories
     )
-
-    selected_transactions_df = selected_transactions_df[
-        selected_transactions_df["category"].isin(categories)
-    ]
-
     n_biggest_groups = st.slider(
         "Number of groups", min_value=1, max_value=50, value=7, step=1
     )
-    biggest_groups_values = get_significant_group_values(
-        selected_transactions_df, group_by_col, n_biggest_groups=n_biggest_groups
-    )
-    selected_transactions_df["group_value"] = selected_transactions_df[
-        group_by_col
-    ].map(lambda group: group if group in biggest_groups_values else "other")
 
-    _df = get_time_aggregated_expenses_df(
-        selected_transactions_df,
+    raw_transactions_df = read_raw_transactions()
+    logging.info("adding columns")
+    transactions_df = _add_columns(raw_transactions_df, categories_rules)
+      
+
+    logging.info("filtering transactions for date range")
+    transactions_df = filter_transactions_date_range(
+        transactions_df, start_date, end_date
+    )
+    transactions_df = transactions_df[transactions_df["category"].isin(categories)]
+
+    biggest_groups_values = get_significant_group_values(
+        transactions_df, group_by_col, n_biggest_groups=n_biggest_groups
+    )
+    transactions_df["group_value"] = transactions_df[group_by_col].map(
+        lambda group: group if group in biggest_groups_values else "other"
+    )
+
+    _df_outcome = get_time_aggregated_expenses_df(
+        transactions_df[transactions_df["type"]=="outcome"],
         frequency=frequency,
     )
 
-    # plot
-    fig = get_barplot(_df)
+    _df_income = get_time_aggregated_expenses_df(
+        transactions_df[transactions_df["type"]=="income"],
+        frequency=frequency,
+    )
+
+    # plot outcome
+    fig = get_barplot(_df_outcome)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # plot income
+    fig = get_barplot(_df_income)
     st.plotly_chart(fig, use_container_width=True)
 
     # table
-    st.dataframe(_df.transpose())
+    st.dataframe(_df_outcome.transpose())
 
     # transactions_table
     st.title("Transactions")
     with st.expander("Open to see transactions table"):
-        st.dataframe(selected_transactions_df)
+        st.dataframe(transactions_df)
         if st.button("Save transactions to CSV"):
             transaction_dumps_dir = os.path.join(
                 project_dir, "data", "dumps", "transactions"
@@ -160,5 +188,5 @@ with expenses:
                 prefix=file_prefix,
                 suffix=".csv",
             ) as f:
-                selected_transactions_df.to_csv(f, index=False, line_terminator="\n")
+                transactions_df.to_csv(f, index=False, line_terminator="\n")
                 st.write(f"Saved in {f.name}")

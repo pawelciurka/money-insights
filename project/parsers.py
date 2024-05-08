@@ -8,6 +8,7 @@ from io import StringIO
 from enum import Enum
 import logging
 import re
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 
@@ -109,13 +110,17 @@ def read_categories_rules(categories_csv_path: str) -> list[CategoryRule]:
             CategoryRule(category=category, contitions=rule_conditions)
         )
 
+    # fallback category - goes last if no previous conditions were met
+    categories_rules.append(
+        CategoryRule(
+            category="unrecognized",
+            contitions=[Condition("title", Relation.contains, "")],
+        )
+    )
     return categories_rules
 
 
 class Parser:
-    def __init__(self, categories_rules) -> None:
-        self.categories_rules = categories_rules
-
     @staticmethod
     def normalize_lines(lines):
         return [
@@ -135,39 +140,8 @@ class Parser:
     def convert_transaction_date(transaction_date: pd.Series) -> pd.Series:
         return pd.to_datetime(transaction_date) + timedelta(minutes=1)
 
-    @staticmethod
-    def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
-        for category_rule in categories_rules:
-            is_match = all(
-                [
-                    condition.evaluate(row[condition.column])
-                    for condition in category_rule.contitions
-                ]
-            )
-            if is_match:
-                return category_rule.category
-        return "unrecognized"
-
     def parse_raw(self, file_path: str):
         raise NotImplementedError()
-
-    def add_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        df["transaction_date"] = df["transaction_date"].map(
-            lambda d: pd.to_datetime(d) + timedelta(minutes=1)
-        )
-        df["amount"] = df["amount"].map(
-            lambda x: float(
-                re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", ".")
-            )
-        )
-        df["type"] = df["amount"].map(lambda x: "income" if x >= 0 else "outcome")
-        df["amount_abs"] = df["amount"].map(lambda x: abs(x))
-        df["one_group"] = "all"
-        df["category"] = df.apply(
-            self.get_category, args=(self.categories_rules,), axis=1
-        )
-
-        return df
 
     @staticmethod
     def clean_raw(df):
@@ -182,8 +156,6 @@ class Parser:
 
         if err:
             raise AssertionError(err)
-
-        df = self.add_columns(df)
 
         # filters
         df = df[~df["amount"].isna()]
@@ -236,7 +208,7 @@ class MbankParser(Parser):
     @staticmethod
     def truncate_header(lines: list[bytes]) -> list[bytes]:
         for i_line, line in enumerate(lines):
-            if line.startswith(b"#Data operacji;"):
+            if line.startswith(b"#Data ksiegowania"):
                 i_header_line = i_line
                 break
 
@@ -244,6 +216,7 @@ class MbankParser(Parser):
 
     @staticmethod
     def truncate_footer(lines: list[bytes]) -> list[bytes]:
+        i_footer_line = len(lines)
         for i_line, line in enumerate(lines):
             if b"#Saldo" in line:
                 i_footer_line = i_line
@@ -281,23 +254,27 @@ PARSER_BY_SOURCE_TYPE: dict[str, type] = {
 }
 
 
-def parse_csv_files_as_df(
-    csv_files: list[CsvFile], categories_rules_file_path: str
-) -> pd.DataFrame:
-    categories_rules = read_categories_rules(categories_rules_file_path)
+def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
     dfs = []
     for csv_file in csv_files:
         log.info(f"Parsing {csv_file}")
-        parser = PARSER_BY_SOURCE_TYPE[csv_file.source_type.name](categories_rules)
-        dfs.append(parser.parse_and_validate(csv_file.path))
+        parser = PARSER_BY_SOURCE_TYPE[csv_file.source_type.name]()
+        df = parser.parse_and_validate(csv_file.path)
+        log.info(f"{len(df)} transaction read from {csv_file.path}")
+        dfs.append(df)
 
     df = pd.concat(dfs, ignore_index=True)
     return df
 
+def list_files(directory: str) -> list[str]:
+    file_list = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_list.append(os.path.join(root, file))
+    
+    return file_list
 
-def parse_directory_as_df(
-    root_input_files_dir, categories_rules_file_path
-) -> pd.DataFrame:
+def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:
     """
     Example directories structure:
     <ROOT_INPUT_FILES_DIR>/ing/file_1.csv
@@ -313,14 +290,66 @@ def parse_directory_as_df(
             )
             continue
 
-        file_names = os.listdir(single_source_dir)
+        file_names = list_files(single_source_dir)
 
         for file_name in file_names:
             file_path = os.path.join(single_source_dir, file_name)
+            if not file_name.lower().endswith(".csv"):
+                continue
             csv_files.append(CsvFile(file_path, source_type))
 
     if len(csv_files) == 0:
         msg = f"No input files discovered in {root_input_files_dir}"
         raise ValueError(msg)
 
-    return parse_csv_files_as_df(csv_files, categories_rules_file_path)
+    return parse_csv_files_as_df(csv_files)
+
+
+def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
+    for category_rule in categories_rules:
+        is_match = all(
+            [
+                condition.evaluate(row[condition.column])
+                for condition in category_rule.contitions
+            ]
+        )
+        if is_match:
+            return category_rule.category
+    return "unrecognized"
+
+
+def add_columns(df: pd.DataFrame, categories_rules: list[CategoryRule]) -> pd.DataFrame:
+    df = df.copy()
+    df["transaction_date"] = df["transaction_date"].map(
+        lambda d: pd.to_datetime(d) + timedelta(minutes=1)
+    )
+    df["amount"] = df["amount"].map(
+        lambda x: float(re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", "."))
+    )
+    df["type"] = df["amount"].map(lambda x: "income" if x >= 0 else "outcome")
+    df["amount_abs"] = df["amount"].map(lambda x: abs(x))
+    df["one_group"] = "all"
+    df["category"] = df.apply(get_category, args=(categories_rules,), axis=1)
+    
+
+    return df
+
+
+def date_to_datetime(date):
+    return datetime(date.year, date.month, date.day)
+
+
+def filter_transactions_date_range(
+    df: pd.DataFrame,
+    start_date,
+    end_date,
+):
+    transactions_mask = (
+        (df["transaction_date"] >= date_to_datetime(start_date))
+        & (df["transaction_date"] <= date_to_datetime(end_date))
+    )
+    return df[transactions_mask]
+
+
+def filter_transactions_categories(df: pd.DataFrame, categories: list[str]):
+    return df[df["category"].isin(categories)]
