@@ -1,5 +1,4 @@
 from datetime import datetime
-from turtle import width
 import streamlit as st
 import pandas as pd
 from project.parsers import (
@@ -18,7 +17,6 @@ from enum import Enum
 import os
 import tempfile
 import logging
-import random 
 
 log = logging.getLogger(__name__)
 

@@ -10,6 +10,10 @@ import logging
 import re
 from datetime import datetime
 
+from project.categories import CategoriesCache
+from project.settings import CATEGORIES_CACHE_FILE_PATH
+from project.utils import hash_string
+
 log = logging.getLogger(__name__)
 
 
@@ -242,7 +246,7 @@ class MbankParser(Parser):
             names=[ic.name for ic in input_cols_mbank],
         )
 
-        df["transaction_id"] = "unknown"
+        df["transaction_id"] = df.apply(lambda r: hash_string("".join([str(v) for v in r])), axis=1 )
         df["account_name"] = "mbank"
 
         return df
@@ -329,8 +333,16 @@ def add_columns(df: pd.DataFrame, categories_rules: list[CategoryRule]) -> pd.Da
     df["type"] = df["amount"].map(lambda x: "income" if x >= 0 else "outcome")
     df["amount_abs"] = df["amount"].map(lambda x: abs(x))
     df["one_group"] = "all"
-    df["category"] = df.apply(get_category, args=(categories_rules,), axis=1)
-    
+
+    # read categories cache
+    cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
+    cache.read()
+
+    if cache.is_empty:
+        df["category"] = df.apply(get_category, args=(categories_rules,), axis=1)
+        cache.write({r.__getattribute__('transaction_id'): r.__getattribute__('category') for r in df.itertuples()})
+    else:
+        df["category"] = df["transaction_id"].map(cache)
 
     return df
 
