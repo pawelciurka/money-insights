@@ -69,6 +69,83 @@ def get_barplot(df):
     return fig
 
 
+def get_barplot_2(
+    df_income: pd.DataFrame,
+    df_outcome: pd.DataFrame,
+    view_income=True,
+    view_outcome=True,
+):
+    fig = go.Figure(
+        layout=go.Layout(
+            height=1600,
+            width=1000,
+            barmode="relative",
+            yaxis_showticklabels=False,
+            yaxis_showgrid=False,
+            # yaxis_range=[0, df.groupby(axis=1, level=0).sum().max().max() * 1.5],
+            # Secondary y-axis overlayed on the primary one and not visible
+            yaxis2=go.layout.YAxis(
+                visible=False,
+                matches="y",
+                overlaying="y",
+                anchor="x",
+            ),
+            font=dict(size=12),
+            legend_x=0,
+            legend_y=1,
+            legend_orientation="h",
+            hovermode="x",
+            margin=dict(b=0, t=10, l=0, r=10),
+        )
+    )
+
+    # Add the traces
+    for col in df_income.columns:
+        if (df_income[col] == 0).all():
+            continue
+        fig.add_bar(
+            x=df_income.index,
+            y=df_income[col],
+            # Set the right yaxis depending on the selected product (from enumerate)
+            yaxis=f"y1",
+            # Offset the bar trace, offset needs to match the width
+            # The values here are in milliseconds, 1billion ms is ~1/3 month
+            offsetgroup="1",
+            offset=0,
+            width=1000000000,
+            legendgroup="income",
+            legendgrouptitle_text="income",
+            name=col,
+            # marker_color=colors[t][col],
+            marker_line=dict(width=2, color="#333"),
+            # hovertemplate="%{y}<extra></extra>"
+        )
+
+        # Add the traces
+    for col in df_outcome.columns:
+        if (df_outcome[col] == 0).all():
+            continue
+        fig.add_bar(
+            x=df_outcome.index,
+            y=df_outcome[col],
+            # Set the right yaxis depending on the selected product (from enumerate)
+            yaxis=f"y2",
+            # Offset the bar trace, offset needs to match the width
+            # The values here are in milliseconds, 1billion ms is ~1/3 month
+            offsetgroup="2",
+            offset=1000000000,
+            width=1000000000,
+            legendgroup="outcome",
+            legendgrouptitle_text="outcome",
+            name=col,
+            # marker_color=colors[t][col],
+            marker_line=dict(width=2, color="#333"),
+            # hovertemplate="%{y}<extra></extra>"
+        )
+
+    return fig
+
+
 def get_significant_group_values(
     transactions_df: pd.DataFrame, group_by_col: str, n_biggest_groups: int
 ) -> set:
@@ -133,7 +210,6 @@ with expenses:
     raw_transactions_df = read_raw_transactions()
     logging.info("adding columns")
     transactions_df = _add_columns(raw_transactions_df, categories_rules)
-      
 
     logging.info("filtering transactions for date range")
     transactions_df = filter_transactions_date_range(
@@ -149,21 +225,25 @@ with expenses:
     )
 
     _df_outcome = get_time_aggregated_expenses_df(
-        transactions_df[transactions_df["type"]=="outcome"],
+        transactions_df[transactions_df["type"] == "outcome"],
         frequency=frequency,
     )
 
     _df_income = get_time_aggregated_expenses_df(
-        transactions_df[transactions_df["type"]=="income"],
+        transactions_df[transactions_df["type"] == "income"],
         frequency=frequency,
     )
 
-    # plot outcome
-    fig = get_barplot(_df_outcome)
-    st.plotly_chart(fig, use_container_width=True)
+    # # plot outcome
+    # fig = get_barplot(_df_outcome)
+    # st.plotly_chart(fig, use_container_width=True)
 
-    # plot income
-    fig = get_barplot(_df_income)
+    # # plot income
+    # fig = get_barplot(_df_income)
+    # st.plotly_chart(fig, use_container_width=True)
+
+    # plot income and outcome
+    fig = get_barplot_2(_df_income, _df_outcome, view_income=True, view_outcome=True)
     st.plotly_chart(fig, use_container_width=True)
 
     # table

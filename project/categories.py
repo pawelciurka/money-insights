@@ -3,7 +3,8 @@ import pandas as pd
 
 
 class CategoriesCache(dict):
-    CSV_COLS = ['transaction_id', 'category']
+    CSV_COLS = ["transaction_id", "category"]
+
     def __init__(self, *, file_path) -> None:
         self.file_path = file_path
         super().__init__()
@@ -14,10 +15,14 @@ class CategoriesCache(dict):
         except:
             return
         for r in df.itertuples():
-            self[r.__getattribute__(self.CSV_COLS[0])] = r.__getattribute__(self.CSV_COLS[1])
-    
+            self[r.__getattribute__(self.CSV_COLS[0])] = r.__getattribute__(
+                self.CSV_COLS[1]
+            )
+
     def write(self, category_by_id: dict[str, str]) -> None:
-        df = pd.DataFrame.from_dict(category_by_id, orient='index', columns=[self.CSV_COLS[1]])
+        df = pd.DataFrame.from_dict(
+            category_by_id, orient="index", columns=[self.CSV_COLS[1]]
+        )
         df.to_csv(self.file_path, index_label=self.CSV_COLS[0])
 
     @property

@@ -8,4 +8,4 @@ CATEGORIES_RULES_FILE_PATH = os.path.join(
 )
 CATEGORIES_CACHE_FILE_PATH = os.path.join(
     ROOT_INPUT_FILES_DIR, "categories", "categories_cache.csv"
-) 
+)

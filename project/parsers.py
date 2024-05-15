@@ -246,7 +246,9 @@ class MbankParser(Parser):
             names=[ic.name for ic in input_cols_mbank],
         )
 
-        df["transaction_id"] = df.apply(lambda r: hash_string("".join([str(v) for v in r])), axis=1 )
+        df["transaction_id"] = df.apply(
+            lambda r: hash_string("".join([str(v) for v in r])), axis=1
+        )
         df["account_name"] = "mbank"
 
         return df
@@ -270,13 +272,15 @@ def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
     df = pd.concat(dfs, ignore_index=True)
     return df
 
+
 def list_files(directory: str) -> list[str]:
     file_list = []
     for root, _, files in os.walk(directory):
         for file in files:
             file_list.append(os.path.join(root, file))
-    
+
     return file_list
+
 
 def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:
     """
@@ -340,7 +344,12 @@ def add_columns(df: pd.DataFrame, categories_rules: list[CategoryRule]) -> pd.Da
 
     if cache.is_empty:
         df["category"] = df.apply(get_category, args=(categories_rules,), axis=1)
-        cache.write({r.__getattribute__('transaction_id'): r.__getattribute__('category') for r in df.itertuples()})
+        cache.write(
+            {
+                r.__getattribute__("transaction_id"): r.__getattribute__("category")
+                for r in df.itertuples()
+            }
+        )
     else:
         df["category"] = df["transaction_id"].map(cache)
 
@@ -356,9 +365,8 @@ def filter_transactions_date_range(
     start_date,
     end_date,
 ):
-    transactions_mask = (
-        (df["transaction_date"] >= date_to_datetime(start_date))
-        & (df["transaction_date"] <= date_to_datetime(end_date))
+    transactions_mask = (df["transaction_date"] >= date_to_datetime(start_date)) & (
+        df["transaction_date"] <= date_to_datetime(end_date)
     )
     return df[transactions_mask]
 
