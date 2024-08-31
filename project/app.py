@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 import streamlit as st
 import pandas as pd
@@ -26,13 +27,23 @@ st.set_page_config(layout="wide")
 now = datetime.now()
 
 
-class TimeInterval(Enum):
-    DAY = 1
-    MONTH = 2
-    YEAR = 3
+@dataclass
+class FrequencyConfig:
+    tag: str  # e.g. 1D, see: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+    display_name: str  # e.g. : Day
+    value_format: str
 
 
-@st.cache
+FREQUENCIES = [
+    FrequencyConfig("1D", "Day", "%B %d"),
+    FrequencyConfig("1M", "Month", "%B %Y"),
+    FrequencyConfig("1Y", "Year", "%Y"),
+    FrequencyConfig("5Y", "5 Years", "%Y"),
+    FrequencyConfig("10Y", "10 Years", "%Y"),
+]
+
+
+@st.cache_data
 def read_raw_transactions() -> pd.DataFrame:
     df = parse_directory_as_df(TRANSACTIONS_FILES_DIR)
     return df
@@ -40,12 +51,14 @@ def read_raw_transactions() -> pd.DataFrame:
 
 def get_time_aggregated_expenses_df(
     input_df: pd.DataFrame,
-    frequency=None,
+    frequency: FrequencyConfig,
 ) -> pd.DataFrame:
 
     groupers = []
     groupers.append(pd.Grouper(key="group_value"))
-    groupers.append(pd.Grouper(key="transaction_date", freq=frequency, label="left"))
+    groupers.append(
+        pd.Grouper(key="transaction_date", freq=frequency.tag, label="left")
+    )
 
     # group by time and aggregate
     out_df = (
@@ -55,6 +68,9 @@ def get_time_aggregated_expenses_df(
         .pivot(index="transaction_date", columns="group_value", values="amount_abs")
         .fillna(0.0)
     )
+
+    out_df.index = out_df.index.map(lambda x: x.strftime(frequency.value_format))
+
     return out_df
 
 
@@ -73,15 +89,15 @@ def get_barplot_2(
     df_income: pd.DataFrame,
     df_outcome: pd.DataFrame,
     view_income=True,
-    view_outcome=True,
+    view_expense=True,
 ):
     fig = go.Figure(
         layout=go.Layout(
-            height=1600,
+            height=800,
             width=1000,
             barmode="relative",
-            yaxis_showticklabels=False,
-            yaxis_showgrid=False,
+            yaxis_showticklabels=True,
+            yaxis_showgrid=True,
             # yaxis_range=[0, df.groupby(axis=1, level=0).sum().max().max() * 1.5],
             # Secondary y-axis overlayed on the primary one and not visible
             yaxis2=go.layout.YAxis(
@@ -91,57 +107,53 @@ def get_barplot_2(
                 anchor="x",
             ),
             font=dict(size=12),
-            legend_x=0,
-            legend_y=1,
             legend_orientation="h",
             hovermode="x",
-            margin=dict(b=0, t=10, l=0, r=10),
+            # margin=dict(b=0, t=10, l=0, r=10),
         )
     )
 
-    # Add the traces
-    for col in df_income.columns:
-        if (df_income[col] == 0).all():
-            continue
-        fig.add_bar(
-            x=df_income.index,
-            y=df_income[col],
-            # Set the right yaxis depending on the selected product (from enumerate)
-            yaxis=f"y1",
-            # Offset the bar trace, offset needs to match the width
-            # The values here are in milliseconds, 1billion ms is ~1/3 month
-            offsetgroup="1",
-            offset=0,
-            width=1000000000,
-            legendgroup="income",
-            legendgrouptitle_text="income",
-            name=col,
-            # marker_color=colors[t][col],
-            marker_line=dict(width=2, color="#333"),
-            # hovertemplate="%{y}<extra></extra>"
-        )
+    if view_expense:
+        for col in df_outcome.columns:
+            if (df_outcome[col] == 0).all():
+                continue
+            fig.add_bar(
+                x=df_outcome.index,
+                y=df_outcome[col],
+                # Set the right yaxis depending on the selected product (from enumerate)
+                yaxis=f"y1",
+                # Offset the bar trace, offset needs to match the width
+                # The values here are in milliseconds, 1billion ms is ~1/3 month
+                offsetgroup="1",
+                offset=0,
+                width=0.4,
+                legendgroup="outcome",
+                legendgrouptitle_text="outcome",
+                name=col,
+            )
 
-        # Add the traces
-    for col in df_outcome.columns:
-        if (df_outcome[col] == 0).all():
-            continue
-        fig.add_bar(
-            x=df_outcome.index,
-            y=df_outcome[col],
-            # Set the right yaxis depending on the selected product (from enumerate)
-            yaxis=f"y2",
-            # Offset the bar trace, offset needs to match the width
-            # The values here are in milliseconds, 1billion ms is ~1/3 month
-            offsetgroup="2",
-            offset=1000000000,
-            width=1000000000,
-            legendgroup="outcome",
-            legendgrouptitle_text="outcome",
-            name=col,
-            # marker_color=colors[t][col],
-            marker_line=dict(width=2, color="#333"),
-            # hovertemplate="%{y}<extra></extra>"
-        )
+    # Add the traces
+    if view_income:
+        for col in df_income.columns:
+            if (df_income[col] == 0).all():
+                continue
+            fig.add_bar(
+                x=df_income.index,
+                y=df_income[col],
+                # Set the right yaxis depending on the selected product (from enumerate)
+                yaxis=f"y2",
+                # Offset the bar trace, offset needs to match the width
+                # The values here are in milliseconds, 1billion ms is ~1/3 month
+                offsetgroup="2",
+                offset=-0.4,
+                width=0.4,
+                legendgroup="income",
+                legendgrouptitle_text="income",
+                name=col,
+                # marker_color=colors[t][col],
+                # marker_line=dict(width=2, color="#333"),
+                # hovertemplate="%{y}<extra></extra>"
+            )
 
     return fig
 
@@ -160,7 +172,7 @@ def get_significant_group_values(
 expenses = st.container()
 
 
-@st.cache
+@st.cache_data
 def _add_columns(raw_transactions_df, categories_rules):
     return add_columns(raw_transactions_df, categories_rules)
 
@@ -170,15 +182,8 @@ with expenses:
 
     frequency = st.selectbox(
         "Frequency",
-        ("1D", "1M", "1Y", "5Y", "10Y", "20Y"),
-        format_func=lambda x: {
-            "1D": "Day",
-            "1M": "Month",
-            "1Y": "Year",
-            "5Y": "5 Years",
-            "10Y": "10 Years",
-            "20Y": "20 Years",
-        }.get(x),
+        [f for f in FREQUENCIES],
+        format_func=lambda x: x.display_name,
         index=1,
     )
     group_by_col = st.selectbox(
@@ -200,9 +205,18 @@ with expenses:
     all_categories = sorted(list(set([cr.category for cr in categories_rules])))
     default_categories = [c for c in all_categories if c != "own-transfer"]
 
-    categories = st.multiselect(
-        "Categories", all_categories, default=default_categories
-    )
+    container = st.container()
+    all = st.checkbox("Select all", value=True)
+
+    if all:
+        categories = container.multiselect(
+            "Select one or more categories:", all_categories, default_categories
+        )
+    else:
+        categories = container.multiselect(
+            "Select one or more categories:", all_categories
+        )
+
     n_biggest_groups = st.slider(
         "Number of groups", min_value=1, max_value=50, value=7, step=1
     )
@@ -224,7 +238,7 @@ with expenses:
         lambda group: group if group in biggest_groups_values else "other"
     )
 
-    _df_outcome = get_time_aggregated_expenses_df(
+    _df_expense = get_time_aggregated_expenses_df(
         transactions_df[transactions_df["type"] == "outcome"],
         frequency=frequency,
     )
@@ -235,7 +249,7 @@ with expenses:
     )
 
     # # plot outcome
-    # fig = get_barplot(_df_outcome)
+    # fig = get_barplot(_df_expense)
     # st.plotly_chart(fig, use_container_width=True)
 
     # # plot income
@@ -243,11 +257,19 @@ with expenses:
     # st.plotly_chart(fig, use_container_width=True)
 
     # plot income and outcome
-    fig = get_barplot_2(_df_income, _df_outcome, view_income=True, view_outcome=True)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        view_income = st.toggle("Show income", value=True)
+    with col2:
+        view_expense = st.toggle("Show expense", value=True)
+
+    fig = get_barplot_2(
+        _df_income, _df_expense, view_income=view_income, view_expense=view_expense
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     # table
-    st.dataframe(_df_outcome.transpose())
+    st.dataframe(_df_expense.transpose())
 
     # transactions_table
     st.title("Transactions")

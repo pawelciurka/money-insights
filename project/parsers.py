@@ -328,9 +328,7 @@ def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
 
 def add_columns(df: pd.DataFrame, categories_rules: list[CategoryRule]) -> pd.DataFrame:
     df = df.copy()
-    df["transaction_date"] = df["transaction_date"].map(
-        lambda d: pd.to_datetime(d) + timedelta(minutes=1)
-    )
+    df["transaction_date"] = df["transaction_date"].map(lambda d: pd.to_datetime(d))
     df["amount"] = df["amount"].map(
         lambda x: float(re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", "."))
     )
