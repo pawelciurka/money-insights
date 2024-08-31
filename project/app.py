@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import streamlit as st
 import pandas as pd
 from project.parsers import (
@@ -32,14 +32,15 @@ class FrequencyConfig:
     tag: str  # e.g. 1D, see: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
     display_name: str  # e.g. : Day
     value_format: str
+    label: str  # 'right' or 'left'
 
 
 FREQUENCIES = [
-    FrequencyConfig("1D", "Day", "%B %d"),
-    FrequencyConfig("1M", "Month", "%B %Y"),
-    FrequencyConfig("1Y", "Year", "%Y"),
-    FrequencyConfig("5Y", "5 Years", "%Y"),
-    FrequencyConfig("10Y", "10 Years", "%Y"),
+    FrequencyConfig("1D", "Day", "%B %d", "left"),
+    FrequencyConfig("1M", "Month", "%B %Y", "right"),
+    FrequencyConfig("1Y", "Year", "%Y", "right"),
+    FrequencyConfig("5Y", "5 Years", "%Y", "right"),
+    FrequencyConfig("10Y", "10 Years", "%Y", "right"),
 ]
 
 
@@ -57,7 +58,7 @@ def get_time_aggregated_expenses_df(
     groupers = []
     groupers.append(pd.Grouper(key="group_value"))
     groupers.append(
-        pd.Grouper(key="transaction_date", freq=frequency.tag, label="left")
+        pd.Grouper(key="transaction_date", freq=frequency.tag, label=frequency.label)
     )
 
     # group by time and aggregate
@@ -74,18 +75,7 @@ def get_time_aggregated_expenses_df(
     return out_df
 
 
-def get_barplot(df):
-    layout = go.Layout(barmode="stack")
-    data = []
-    for name, trace in df.iteritems():
-        data.append(go.Bar(x=trace.index, y=list(trace), name=name))
-
-    fig = go.Figure(data=data, layout=layout)
-
-    return fig
-
-
-def get_barplot_2(
+def get_barplot(
     df_income: pd.DataFrame,
     df_outcome: pd.DataFrame,
     view_income=True,
@@ -197,8 +187,12 @@ with expenses:
     with c1:
         start_year = now.year if now.month > 1 else now.year - 1
         start_date = st.date_input("Start Date", value=datetime(start_year, 1, 1))
+        start_date = datetime.combine(start_date, datetime.min.time())
     with c2:
         end_date = st.date_input("End Date")
+        end_date = datetime.combine(end_date, datetime.min.time()) + timedelta(
+            hours=23, minutes=59, seconds=59
+        )
 
     categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
 
@@ -248,45 +242,23 @@ with expenses:
         frequency=frequency,
     )
 
-    # # plot outcome
-    # fig = get_barplot(_df_expense)
-    # st.plotly_chart(fig, use_container_width=True)
-
-    # # plot income
-    # fig = get_barplot(_df_income)
-    # st.plotly_chart(fig, use_container_width=True)
+    barplot_tab, table_tab = st.tabs(["Bars", "Table"])
 
     # plot income and outcome
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        view_income = st.toggle("Show income", value=True)
-    with col2:
-        view_expense = st.toggle("Show expense", value=True)
+    with barplot_tab:
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            view_income = st.toggle("Show income", value=True)
+        with col2:
+            view_expense = st.toggle("Show expense", value=True)
 
-    fig = get_barplot_2(
-        _df_income, _df_expense, view_income=view_income, view_expense=view_expense
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        fig = get_barplot(
+            _df_income, _df_expense, view_income=view_income, view_expense=view_expense
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.dataframe(_df_expense.transpose())
 
     # table
-    st.dataframe(_df_expense.transpose())
-
-    # transactions_table
-    st.title("Transactions")
-    with st.expander("Open to see transactions table"):
+    with table_tab:
         st.dataframe(transactions_df)
-        if st.button("Save transactions to CSV"):
-            transaction_dumps_dir = os.path.join(
-                project_dir, "data", "dumps", "transactions"
-            )
-            os.makedirs(transaction_dumps_dir, exist_ok=True)
-            file_prefix = f"{now.year:04d}_{now.month:02d}_{now.day:02d}_{now.hour:02d}_{now.minute:02d}_"
-            with tempfile.NamedTemporaryFile(
-                "w",
-                dir=transaction_dumps_dir,
-                delete=False,
-                prefix=file_prefix,
-                suffix=".csv",
-            ) as f:
-                transactions_df.to_csv(f, index=False, line_terminator="\n")
-                st.write(f"Saved in {f.name}")

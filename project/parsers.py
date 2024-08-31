@@ -151,6 +151,7 @@ class Parser:
     def clean_raw(df):
         df["title"] = df["title"].astype(str)
         df["contractor"] = df["contractor"].astype(str)
+        df["transaction_date"] = Parser.convert_transaction_date(df["transaction_date"])
         return df
 
     def parse_and_validate(self, file_path: str) -> pd.DataFrame:
@@ -354,17 +355,13 @@ def add_columns(df: pd.DataFrame, categories_rules: list[CategoryRule]) -> pd.Da
     return df
 
 
-def date_to_datetime(date):
-    return datetime(date.year, date.month, date.day)
-
-
 def filter_transactions_date_range(
     df: pd.DataFrame,
-    start_date,
-    end_date,
+    start_datetime,
+    end_datetime,
 ):
-    transactions_mask = (df["transaction_date"] >= date_to_datetime(start_date)) & (
-        df["transaction_date"] <= date_to_datetime(end_date)
+    transactions_mask = (df["transaction_date"] >= start_datetime) & (
+        df["transaction_date"] <= end_datetime
     )
     return df[transactions_mask]
 
