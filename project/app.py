@@ -81,6 +81,13 @@ def get_barplot(
     view_income=True,
     view_expense=True,
 ):
+    if int(view_expense) + int(view_income) == 1:
+        expense_bar_offset = -0.2
+        income_bar_offset = -0.2
+    else:
+        expense_bar_offset = 0.0
+        income_bar_offset = -0.4
+
     fig = go.Figure(
         layout=go.Layout(
             height=800,
@@ -91,7 +98,7 @@ def get_barplot(
             # yaxis_range=[0, df.groupby(axis=1, level=0).sum().max().max() * 1.5],
             # Secondary y-axis overlayed on the primary one and not visible
             yaxis2=go.layout.YAxis(
-                visible=False,
+                visible=True,
                 matches="y",
                 overlaying="y",
                 anchor="x",
@@ -112,10 +119,8 @@ def get_barplot(
                 y=df_outcome[col],
                 # Set the right yaxis depending on the selected product (from enumerate)
                 yaxis=f"y1",
-                # Offset the bar trace, offset needs to match the width
-                # The values here are in milliseconds, 1billion ms is ~1/3 month
                 offsetgroup="1",
-                offset=0,
+                offset=expense_bar_offset,
                 width=0.4,
                 legendgroup="outcome",
                 legendgrouptitle_text="outcome",
@@ -135,7 +140,7 @@ def get_barplot(
                 # Offset the bar trace, offset needs to match the width
                 # The values here are in milliseconds, 1billion ms is ~1/3 month
                 offsetgroup="2",
-                offset=-0.4,
+                offset=income_bar_offset,
                 width=0.4,
                 legendgroup="income",
                 legendgrouptitle_text="income",
@@ -242,7 +247,7 @@ with expenses:
         frequency=frequency,
     )
 
-    barplot_tab, table_tab = st.tabs(["Bars", "Table"])
+    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
 
     # plot income and outcome
     with barplot_tab:
@@ -260,5 +265,5 @@ with expenses:
         st.dataframe(_df_expense.transpose())
 
     # table
-    with table_tab:
+    with transactions_table_tab:
         st.dataframe(transactions_df)
