@@ -1,12 +1,92 @@
+from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
 import pandas as pd
+import logging
+
+from project.utils import calculate_md5
+
+
+class Relation(Enum):
+    equals = 1
+    contains = 2
+
+
+@dataclass
+class Condition:
+    column: str
+    relation: Relation
+    value: str
+
+    def evaluate(self, other_value: str):
+        def equals(other_value: str):
+            return self.value == other_value
+
+        def contains(other_value: str):
+            return self.value in other_value
+
+        evaluator = {"equals": equals, "contains": contains}[self.relation.name]
+        return evaluator(str(other_value))
+
+
+@dataclass
+class CategoryRule:
+    category: str
+    contitions: list[Condition]
+
+
+@dataclass
+class CategoriesRules:
+    items: list[CategoryRule]
+    csv_md5: str
+
+
+categories_definitions_cols = ["rule_id", "column", "relation", "value", "category"]
+
+
+def read_categories_rules(categories_csv_path: str) -> CategoriesRules:
+    logging.info(f"Reading categories from {categories_csv_path}")
+    df = pd.read_csv(categories_csv_path, usecols=categories_definitions_cols)
+
+    items = []
+    categories_rules = CategoriesRules(
+        items=items, csv_md5=calculate_md5(categories_csv_path)
+    )
+    for rule_id, rule_conditions_df in df.groupby("rule_id"):
+        if len(set(rule_conditions_df["category"])) != 1:
+            raise AssertionError(
+                f"Categories for rule {rule_id} differ between conditions!"
+            )
+
+        category = rule_conditions_df["category"].iloc[0]
+        rule_conditions = []
+        for _, condition in rule_conditions_df.iterrows():
+            rule_conditions.append(
+                Condition(
+                    column=condition["column"],
+                    relation=Relation[condition["relation"]],
+                    value=condition["value"],
+                )
+            )
+
+        items.append(CategoryRule(category=category, contitions=rule_conditions))
+
+    # fallback category - goes last if no previous conditions were met
+    items.append(
+        CategoryRule(
+            category="unrecognized",
+            contitions=[Condition("title", Relation.contains, "")],
+        )
+    )
+    return categories_rules
 
 
 class CategoriesCache(dict):
-    CSV_COLS = ["transaction_id", "category"]
+    CSV_COLS = ["transaction_id", "category", "rules_csv_md5"]
 
     def __init__(self, *, file_path) -> None:
         self.file_path = file_path
+        self.rules_csv_md5 = None
         super().__init__()
 
     def read(self) -> None:
@@ -18,11 +98,13 @@ class CategoriesCache(dict):
             self[r.__getattribute__(self.CSV_COLS[0])] = r.__getattribute__(
                 self.CSV_COLS[1]
             )
+            self.md5 = list(set(df[self.CSV_COLS[2]]))[0]
 
-    def write(self, category_by_id: dict[str, str]) -> None:
+    def write(self, category_by_id: dict[str, str], rules_csv_md5: str) -> None:
         df = pd.DataFrame.from_dict(
             category_by_id, orient="index", columns=[self.CSV_COLS[1]]
         )
+        df["rules_csv_md5"] = rules_csv_md5
         df.to_csv(self.file_path, index_label=self.CSV_COLS[0])
 
     @property

@@ -1,23 +1,22 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import logging
 import streamlit as st
 import pandas as pd
+import plotly.graph_objs as go
+
+from project.categories import CategoriesCache, CategoriesRules, read_categories_rules
 from project.parsers import (
     parse_directory_as_df,
     add_columns,
-    read_categories_rules,
     filter_transactions_date_range,
 )
 from project.settings import (
     TRANSACTIONS_FILES_DIR,
     CATEGORIES_RULES_FILE_PATH,
-    project_dir,
+    CATEGORIES_CACHE_FILE_PATH,
 )
-import plotly.graph_objs as go
-from enum import Enum
-import os
-import tempfile
-import logging
+
 
 log = logging.getLogger(__name__)
 
@@ -145,9 +144,6 @@ def get_barplot(
                 legendgroup="income",
                 legendgrouptitle_text="income",
                 name=col,
-                # marker_color=colors[t][col],
-                # marker_line=dict(width=2, color="#333"),
-                # hovertemplate="%{y}<extra></extra>"
             )
 
     return fig
@@ -168,8 +164,12 @@ expenses = st.container()
 
 
 @st.cache_data
-def _add_columns(raw_transactions_df, categories_rules):
-    return add_columns(raw_transactions_df, categories_rules)
+def _add_columns(
+    raw_transactions_df: pd.DataFrame,
+    categories_rules: CategoriesRules,
+    categories_cache: CategoriesCache,
+):
+    return add_columns(raw_transactions_df, categories_rules, categories_cache)
 
 
 with expenses:
@@ -201,7 +201,7 @@ with expenses:
 
     categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
 
-    all_categories = sorted(list(set([cr.category for cr in categories_rules])))
+    all_categories = sorted(list(set([cr.category for cr in categories_rules.items])))
     default_categories = [c for c in all_categories if c != "own-transfer"]
 
     container = st.container()
@@ -220,9 +220,15 @@ with expenses:
         "Number of groups", min_value=1, max_value=50, value=7, step=1
     )
 
+    # read categories cache
+    categories_cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
+    categories_cache.read()
+
     raw_transactions_df = read_raw_transactions()
     logging.info("adding columns")
-    transactions_df = _add_columns(raw_transactions_df, categories_rules)
+    transactions_df = _add_columns(
+        raw_transactions_df, categories_rules, categories_cache
+    )
 
     logging.info("filtering transactions for date range")
     transactions_df = filter_transactions_date_range(
