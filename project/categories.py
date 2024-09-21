@@ -3,8 +3,10 @@ from enum import Enum
 from typing import Optional
 import pandas as pd
 import logging
-
+import streamlit as st
 from project.utils import calculate_md5
+
+log = logging.getLogger(__name__)
 
 
 class Relation(Enum):
@@ -44,13 +46,13 @@ class CategoriesRules:
 categories_definitions_cols = ["rule_id", "column", "relation", "value", "category"]
 
 
-def read_categories_rules(categories_csv_path: str) -> CategoriesRules:
-    logging.info(f"Reading categories from {categories_csv_path}")
-    df = pd.read_csv(categories_csv_path, usecols=categories_definitions_cols)
+def read_categories_rules(categories_rules_csv_path: str) -> CategoriesRules:
+    log.info(f"Reading categories rules from {categories_rules_csv_path}")
+    df = pd.read_csv(categories_rules_csv_path, usecols=categories_definitions_cols)
 
     items = []
     categories_rules = CategoriesRules(
-        items=items, csv_md5=calculate_md5(categories_csv_path)
+        items=items, csv_md5=calculate_md5(categories_rules_csv_path)
     )
     for rule_id, rule_conditions_df in df.groupby("rule_id"):
         if len(set(rule_conditions_df["category"])) != 1:
@@ -78,6 +80,8 @@ def read_categories_rules(categories_csv_path: str) -> CategoriesRules:
             contitions=[Condition("title", Relation.contains, "")],
         )
     )
+    log.info(f"Read {len(items)} categories rules from {categories_rules_csv_path}")
+
     return categories_rules
 
 
@@ -91,14 +95,17 @@ class CategoriesCache(dict):
 
     def read(self) -> None:
         try:
+            log.info(f"Trying to read precomputed categories from {self.file_path}")
             df = pd.read_csv(self.file_path, usecols=self.CSV_COLS)
         except:
+            log.info(f"Couldn't read precomputed categories from {self.file_path}")
             return
         for r in df.itertuples():
             self[r.__getattribute__(self.CSV_COLS[0])] = r.__getattribute__(
                 self.CSV_COLS[1]
             )
-            self.md5 = list(set(df[self.CSV_COLS[2]]))[0]
+        self.md5 = list(set(df[self.CSV_COLS[2]]))[0]
+        logging.info(f"Read {len(df)} precomputed categories")
 
     def write(self, category_by_id: dict[str, str], rules_csv_md5: str) -> None:
         df = pd.DataFrame.from_dict(
@@ -110,3 +117,9 @@ class CategoriesCache(dict):
     @property
     def is_empty(self):
         return bool(len(self) == 0)
+
+    def __hash__(self):
+        return self.rules_csv_md5
+
+    def __eq__(self, other):
+        return self.rules_csv_md5 == self.rules_csv_md5

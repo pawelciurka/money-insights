@@ -19,7 +19,10 @@ from project.settings import (
 
 
 log = logging.getLogger(__name__)
-
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
 st.set_page_config(layout="wide")
 
@@ -45,7 +48,9 @@ FREQUENCIES = [
 
 @st.cache_data
 def read_raw_transactions() -> pd.DataFrame:
+    logging.info("Reading raw transactions from source files")
     df = parse_directory_as_df(TRANSACTIONS_FILES_DIR)
+    logging.info(f"Read {len(df)} raw transactions from source files")
     return df
 
 
@@ -169,6 +174,7 @@ def _add_columns(
     categories_rules: CategoriesRules,
     categories_cache: CategoriesCache,
 ):
+    log.info("adding columns")
     return add_columns(raw_transactions_df, categories_rules, categories_cache)
 
 
@@ -225,12 +231,10 @@ with expenses:
     categories_cache.read()
 
     raw_transactions_df = read_raw_transactions()
-    logging.info("adding columns")
     transactions_df = _add_columns(
         raw_transactions_df, categories_rules, categories_cache
     )
 
-    logging.info("filtering transactions for date range")
     transactions_df = filter_transactions_date_range(
         transactions_df, start_date, end_date
     )
