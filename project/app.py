@@ -69,9 +69,9 @@ def _get_state_transactions_df(
     return state_transactions_df
 
 
-expenses = st.container()
+expenses_container = st.container()
 
-with expenses:
+with expenses_container:
     st.title("Expense visualization")
 
     frequency = st.selectbox(
