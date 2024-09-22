@@ -276,6 +276,7 @@ def add_columns(
     df["one_group"] = "all"
 
     if categories_cache.is_empty or categories_cache.md5 != categories_rules.csv_md5:
+        log.info("Precomputed categories cache is invalid, recalculating categories")
         df["category"] = df.apply(get_category, args=(categories_rules.items,), axis=1)
         categories_cache.write(
             {
@@ -285,6 +286,7 @@ def add_columns(
             categories_rules.csv_md5,
         )
     else:
+        log.info("Using precomputed categories")
         df["category"] = df["transaction_id"].map(categories_cache)
 
     return df
