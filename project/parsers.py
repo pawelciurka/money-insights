@@ -8,10 +8,9 @@ from io import StringIO
 from enum import Enum
 import logging
 import re
-from datetime import datetime
 from project.categories import CategoriesCache, CategoriesRules, CategoryRule
 
-from project.utils import hash_string
+from project.utils import hash_string, list_files
 
 log = logging.getLogger(__name__)
 
@@ -206,15 +205,6 @@ def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
 
     df = pd.concat(dfs, ignore_index=True)
     return df
-
-
-def list_files(directory: str) -> list[str]:
-    file_list = []
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_list.append(os.path.join(root, file))
-
-    return file_list
 
 
 def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:

@@ -1,4 +1,5 @@
 import hashlib
+import os
 
 
 def hash_string(string: str) -> str:
@@ -22,3 +23,12 @@ def calculate_md5(file_path: str) -> str:
 
     # Return the hexadecimal MD5 hash
     return hash_md5.hexdigest()
+
+
+def list_files(directory: str) -> list[str]:
+    file_list = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_list.append(os.path.join(root, file))
+
+    return file_list
