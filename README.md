@@ -1,5 +1,5 @@
 # money-insights
-Fully offline modern looking analysis of personal finance
+Fully offline, modern looking analysis of personal finance.
 ![](images/streamlit-app-2024-04-11-21-04-86.gif)
 
 # Installation

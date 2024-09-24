@@ -10,7 +10,7 @@ from project.categories import (
     read_categories_rules,
     create_empty_categories_rules,
 )
-from project.parsers import add_columns, parse_directory_as_df
+from project.transactions_read import add_columns, parse_directory_as_df
 from project.settings import (
     CATEGORIES_CACHE_FILE_PATH,
     CATEGORIES_RULES_FILE_PATH,

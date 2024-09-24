@@ -53,4 +53,4 @@ def get_significant_group_values(
         .sum()
         .sort_values(ascending=False)[:n_biggest_groups]
     )
-    return {g for g, _ in biggest_groups_names.iteritems()}
+    return {g for g, _ in biggest_groups_names.items()}

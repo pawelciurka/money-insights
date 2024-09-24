@@ -7,66 +7,22 @@ st.set_page_config(layout="wide")
 from datetime import datetime, timedelta
 import logging
 
-from project.parsers import (
-    filter_transactions_date_range,
-)
 from project.settings import (
     NOW,
 )
+from project.transactions_state import get_state_transactions_df
 from project.transactions_aggregation import (
     FREQUENCIES,
     get_time_aggregated_transactions_df,
-    get_significant_group_values,
 )
 from project.barplot import get_barplot
 from project import app_data
-import pandas as pd
 
 log = logging.getLogger(__name__)
 if not logging.getLogger().hasHandlers():
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
-
-
-def _get_user_filtered_transations_df(
-    transactions_df: pd.DataFrame, categories: list[str], start_date, end_date
-) -> pd.DataFrame:
-    # date range
-    transactions_df = filter_transactions_date_range(
-        app_data.all_transactions_df, start_date, end_date
-    )
-    # category
-    transactions_df = transactions_df[transactions_df["category"].isin(categories)]
-
-    return transactions_df
-
-
-def _get_state_transactions_df(
-    transactions_df: pd.DataFrame,
-    categories: list[str],
-    start_date,
-    end_date,
-    group_by_col: str,
-    n_biggest_groups: int,
-) -> pd.DataFrame:
-    state_transactions_df = _get_user_filtered_transations_df(
-        transactions_df=transactions_df,
-        categories=categories,
-        start_date=start_date,
-        end_date=end_date,
-    )
-
-    biggest_groups_values = get_significant_group_values(
-        transactions_df=state_transactions_df,
-        group_by_col=group_by_col,
-        n_biggest_groups=n_biggest_groups,
-    )
-    state_transactions_df["group_value"] = state_transactions_df[group_by_col].map(
-        lambda group: group if group in biggest_groups_values else "other"
-    )
-
-    return state_transactions_df
 
 
 expenses_container = st.container()
@@ -116,8 +72,8 @@ with expenses_container:
         "Number of groups", min_value=1, max_value=50, value=7, step=1
     )
 
-    state_transactions_df = _get_state_transactions_df(
-        transactions_df=app_data.all_transactions_df,
+    state_transactions_df = get_state_transactions_df(
+        all_transactions_df=app_data.all_transactions_df,
         categories=categories,
         start_date=start_date,
         end_date=end_date,
