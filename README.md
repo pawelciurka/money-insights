@@ -3,7 +3,7 @@ Fully offline modern looking analysis of personal finance
 ![](images/streamlit-app-2024-04-11-21-04-86.gif)
 
 # Installation
-* make sure you have `poetry` installed 
+* make sure you have `poetry` installed (https://python-poetry.org/docs/#installation)
 * run `poetry install` in project's directory. This will create a virtual environment (by default in `./.venv`)
 * run `poetry shell` to activate the environment
 * run `streamlit run ./project/app.py` to start the app
