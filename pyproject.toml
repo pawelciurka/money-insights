@@ -1,17 +1,23 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "money_insights"
-description = ""
 readme = "README.md"
 classifiers = [
     "Framework :: Streamlit",
     "Programming Language :: Python :: 3",
 ]
-dependencies = [
-    "streamlit",
-    'importlib-metadata; python_version>="3.8"',
-]
-dynamic = ["version"]
+
+[tool.poetry]
+name = "money-insights"
+version = "0.1.0"
+description = "Streamlit app for analysis of personal finance"
+authors = ["Pawel Ciurka <pawelciurka@gmail.com>"]
+packages = [{ include = "project" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.9.7"
+requests = "^2.25.1"
+streamlit = "^1.38.0"
+pandas = "^1.4.3"
+numpy = "^1.26.4" # after releasing numpy 2.0.0 it's incompatible with pandas
+pytest = "^7.1.2"
+plotly= "^5.10.0"
+pyyaml= "^6.0"
