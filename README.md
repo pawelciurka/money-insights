@@ -2,13 +2,13 @@
 Fully offline modern looking analysis of personal finance
 ![](images/streamlit-app-2024-04-11-21-04-86.gif)
 
-# installation
+# Installation
 * Make sure you have `poetry` installed 
 * Run `poetry install` in project's directory. This will create a virtual environment by defaul in `./.venv` directory
 * `poetry shell` to activate the environment
 * `streamlit run ./project/app.py` to start the app
 
-# usage
+# Usage
 * put your transactions data in `./data/transactions`
   * ING (Polish) 
     * go to `https://login.ingbank.pl/`
