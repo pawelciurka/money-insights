@@ -24,6 +24,7 @@ class CsvCol:
 class SourceType(Enum):
     ing = 1
     mbank = 2
+    generic = 3
 
 
 @dataclass
@@ -188,9 +189,20 @@ class MbankParser(Parser):
         return df
 
 
+class GenericParser(Parser):
+    def parse_raw(self, file_path: str) -> pd.DataFrame:
+        df = pd.read_csv(
+            file_path,
+            sep=',',
+            usecols=mandatory_out_fields,
+        )
+        return df
+
+
 PARSER_BY_SOURCE_TYPE: dict[str, type] = {
     SourceType.ing.name: IngParser,
     SourceType.mbank.name: MbankParser,
+    SourceType.generic.name: GenericParser,
 }
 
 
@@ -277,6 +289,8 @@ def add_columns(
         )
     else:
         log.info("Using precomputed categories")
-        df["category"] = df["transaction_id"].map(categories_cache)
+        df["category"] = df["transaction_id"].map(
+            lambda id: categories_cache.get(id, 'unrecognized')
+        )
 
     return df
