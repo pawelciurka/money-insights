@@ -33,7 +33,7 @@ def get_time_aggregated_transactions_df(
 
     # group by time and aggregate
     out_df = (
-        input_df.groupby(groupers)["amount_abs"]
+        input_df.groupby(groupers, group_keys=True)["amount_abs"]
         .apply(sum)
         .reset_index()
         .pivot(index="transaction_date", columns="group_value", values="amount_abs")

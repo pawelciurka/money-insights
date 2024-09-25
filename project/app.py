@@ -56,7 +56,7 @@ with expenses_container:
         )
 
     container = st.container()
-    all = st.checkbox("Select all transactions", value=True)
+    all = st.checkbox("Select all categories", value=True)
 
     if all:
         categories = container.multiselect(

@@ -20,7 +20,7 @@ def get_state_transactions_df(
     )
     # filter by category
     state_transactions_df = state_transactions_df[
-        all_transactions_df["category"].isin(categories)
+        state_transactions_df["category"].isin(categories)
     ]
 
     # set group_value column for N biggest groups
