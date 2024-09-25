@@ -13,7 +13,7 @@ authors = ["Pawel Ciurka <pawelciurka@gmail.com>"]
 packages = [{ include = "project" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.9.7"
+python = ">=3.9, !=3.9.7"
 requests = "^2.25.1"
 streamlit = "^1.38.0"
 pandas = "^1.4.3"
