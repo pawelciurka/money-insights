@@ -2,6 +2,7 @@ import pandas as pd
 
 from project.transactions_aggregation import get_significant_group_values
 from project.transactions_filters import filter_transactions_date_range
+from project.utils import get_emoji
 
 
 def get_state_transactions_df(
@@ -30,6 +31,13 @@ def get_state_transactions_df(
     )
     state_transactions_df["group_value"] = state_transactions_df[group_by_col].map(
         lambda group: group if group in biggest_groups_values else "other"
+    )
+
+    state_transactions_df["display_category"] = state_transactions_df["category"].map(
+        lambda c: f"{c}{get_emoji(c)}"
+    )
+    state_transactions_df["display_type"] = state_transactions_df["type"].map(
+        lambda t: f"{t}{get_emoji(t)}"
     )
 
     return state_transactions_df

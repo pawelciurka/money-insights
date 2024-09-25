@@ -115,4 +115,28 @@ with expenses_container:
 
     # table
     with transactions_table_tab:
-        st.dataframe(state_transactions_df)
+        st.dataframe(
+            state_transactions_df,
+            use_container_width=True,
+            hide_index=True,
+            column_order=[
+                "transaction_date",
+                "display_type",
+                "display_category",
+                "contractor",
+                "title",
+                "amount_abs",
+            ],
+            column_config={
+                'amount_abs': st.column_config.ProgressColumn(
+                    label='amount',
+                    width="small",
+                    help=None,
+                    format="%.2f",
+                    min_value=0,
+                    max_value=state_transactions_df['amount_abs'].quantile(0.90),
+                ),
+                "display_category": st.column_config.TextColumn(label="category"),
+                "display_type": st.column_config.TextColumn(label="type"),
+            },
+        )

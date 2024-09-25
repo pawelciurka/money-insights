@@ -32,3 +32,7 @@ def list_files(directory: str) -> list[str]:
             file_list.append(os.path.join(root, file))
 
     return file_list
+
+
+def get_emoji(category_name: str):
+    return {"groceries": "🛒", "income": "🔺", "outcome": "🔻"}.get(category_name, "")
