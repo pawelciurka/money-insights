@@ -1,6 +1,5 @@
 # read categories cache
 import logging
-import os.path
 
 import streamlit as st
 import pandas as pd
@@ -8,7 +7,6 @@ from project.categories import (
     CategoriesCache,
     CategoriesRules,
     read_categories_rules,
-    create_empty_categories_rules,
 )
 from project.transactions_read import add_columns, parse_directory_as_df
 from project.settings import (
@@ -41,12 +39,6 @@ def _read_all_transactions_raw() -> pd.DataFrame:
 
 categories_cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
 categories_cache.read()
-
-if not os.path.isfile(CATEGORIES_RULES_FILE_PATH):
-    log.info(
-        f"No categories rules file in {CATEGORIES_RULES_FILE_PATH}, creating template file"
-    )
-    create_empty_categories_rules(CATEGORIES_RULES_FILE_PATH)
 
 categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
 all_categories = sorted(list(set([cr.category for cr in categories_rules.items])))

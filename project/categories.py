@@ -45,21 +45,6 @@ class CategoriesRules:
 categories_definitions_cols = ["rule_id", "column", "relation", "value", "category"]
 
 
-def create_empty_categories_rules(categories_rules_csv_path: str):
-    exemplary_data = [
-        {
-            categories_definitions_cols[0]: 1,
-            categories_definitions_cols[1]: "contractor",
-            categories_definitions_cols[2]: "contains",
-            categories_definitions_cols[3]: "ZABKA",
-            categories_definitions_cols[4]: "groceries",
-        }
-    ]
-    pd.DataFrame(exemplary_data, columns=categories_definitions_cols).to_csv(
-        categories_rules_csv_path, quoting=csv.QUOTE_NONNUMERIC, index=False
-    )
-
-
 def read_categories_rules(categories_rules_csv_path: str) -> CategoriesRules:
     log.info(f"Reading categories rules from {categories_rules_csv_path}")
     df = pd.read_csv(categories_rules_csv_path, usecols=categories_definitions_cols)
