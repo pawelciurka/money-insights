@@ -95,9 +95,10 @@ with expenses_container:
         frequency=frequency,
     )
 
-    barplot_tab, transactions_table_tab = st.tabs(
-        ["Bars", f"Transactions ({len(state_transactions_df)})"]
-    )
+    if len(state_transactions_df) == 0:
+        st.toast('All transactions were excluded! Change filters ;)', icon="🚨")
+
+    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
 
     # plot income and outcome
     with barplot_tab:
@@ -115,41 +116,46 @@ with expenses_container:
                 view_expense=view_expense,
             ),
             use_container_width=True,
+            config={'displayModeBar': False},
         )
 
-        st.dataframe(_df_expense.transpose())
+        st.dataframe(
+            _df_expense.transpose(),
+            use_container_width=True,
+        )
 
     # table
     with transactions_table_tab:
-        st.dataframe(
-            state_transactions_df,
-            use_container_width=True,
-            hide_index=True,
-            column_order=[
-                "transaction_date",
-                "display_type",
-                "display_category",
-                "contractor",
-                "title",
-                "amount_abs",
-            ],
-            column_config={
-                "transaction_date": st.column_config.DateColumn(
-                    label="date", width="small"
-                ),
-                "display_type": st.column_config.TextColumn(
-                    label="type", width="small"
-                ),
-                "display_category": st.column_config.TextColumn(
-                    label="category", width="small"
-                ),
-                'amount_abs': st.column_config.ProgressColumn(
-                    label='amount',
-                    width="small",
-                    help=None,
-                    format="%.2f",
-                    min_value=0,
-                    max_value=state_transactions_df['amount_abs'].quantile(0.90),
-                ),
-            },
-        )
+        if len(state_transactions_df) > 0:
+            st.dataframe(
+                state_transactions_df,
+                use_container_width=True,
+                hide_index=True,
+                column_order=[
+                    "transaction_date",
+                    "display_type",
+                    "display_category",
+                    "contractor",
+                    "title",
+                    "amount_abs",
+                ],
+                column_config={
+                    "transaction_date": st.column_config.DateColumn(
+                        label="date", width="small"
+                    ),
+                    "display_type": st.column_config.TextColumn(
+                        label="type", width="small"
+                    ),
+                    "display_category": st.column_config.TextColumn(
+                        label="category", width="small"
+                    ),
+                    'amount_abs': st.column_config.ProgressColumn(
+                        label='amount',
+                        width="small",
+                        help=None,
+                        format="%.2f",
+                        min_value=0,
+                        max_value=state_transactions_df['amount_abs'].quantile(0.90),
+                    ),
+                },
+            )
