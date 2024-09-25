@@ -1,6 +1,4 @@
-# money-insights
-Fully offline, modern looking analysis of personal finance.
-![](images/streamlit-app-2024-04-11-21-04-86.gif)
+Fully offline, modern looking tool for analysis of personal finance. Made with Streamlit.
 
 # Installation
 * make sure you have `poetry` installed (https://python-poetry.org/docs/#installation)
@@ -18,6 +16,11 @@ Fully offline, modern looking analysis of personal finance.
   * mBank (Polish) 
     * (...)
     * place the file in `./data/transactions/mbank/`
-  * generic format (to do)
+  * generic format
+    * prepare your csv that have these columns: `["transaction_date", "contractor", "transaction_id", "title", "amount", "account_name"]`
+    * place the file in `./data/transactions/generic`
 * work on your categories (`./data/categories/categories_conditions.csv`)
 
+# Demo
+visit: https://money-insights.streamlit.app/
+![](images/streamlit-app-2024-04-11-21-04-86.gif)
