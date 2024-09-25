@@ -35,4 +35,20 @@ def list_files(directory: str) -> list[str]:
 
 
 def get_emoji(category_name: str):
-    return {"groceries": "🛒", "income": "🔺", "outcome": "🔻"}.get(category_name, "")
+    return {
+        "groceries": "🛒",
+        "healthcare": "💊",
+        "tax": "🧾",
+        "bills": "💵",
+        "subscriptions": "🔔",
+        "home": "🏡",
+        "entertainment": "🎮",
+        "restaurants": "🍽",
+        "hobbies": "🎨",
+        "education": "🎓",
+        "job": "💼",
+        # "loans": "💳",
+        "unrecognized": "❓",
+        "income": "🔺",
+        "outcome": "🔻",
+    }.get(category_name, "")

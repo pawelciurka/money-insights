@@ -1,5 +1,6 @@
 import streamlit as st
 
+from project.utils import get_emoji
 
 st.set_page_config(layout="wide")
 
@@ -60,12 +61,15 @@ with expenses_container:
     if all:
         categories = container.multiselect(
             "Select one or more categories:",
-            app_data.all_categories,
-            [c for c in app_data.all_categories if c != "own-transfer"],
+            options=app_data.all_categories,
+            format_func=lambda c: f"{get_emoji(c)}{c}",
+            default=[c for c in app_data.all_categories if c != "own-transfer"],
         )
     else:
         categories = container.multiselect(
-            "Select one or more categories:", app_data.all_categories
+            "Select one or more categories:",
+            options=app_data.all_categories,
+            format_func=lambda c: f"{get_emoji(c)}{c}",
         )
 
     n_biggest_groups = st.slider(
@@ -91,7 +95,9 @@ with expenses_container:
         frequency=frequency,
     )
 
-    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
+    barplot_tab, transactions_table_tab = st.tabs(
+        ["Bars", f"Transactions ({len(state_transactions_df)})"]
+    )
 
     # plot income and outcome
     with barplot_tab:

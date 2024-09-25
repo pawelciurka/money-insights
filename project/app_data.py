@@ -43,7 +43,6 @@ categories_cache.read()
 categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
 all_categories = sorted(list(set([cr.category for cr in categories_rules.items])))
 
-
 all_transactions_df = _add_columns_to_raw_transactions(
     _read_all_transactions_raw(), categories_rules, categories_cache
 )
