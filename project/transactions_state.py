@@ -34,7 +34,7 @@ def get_state_transactions_df(
     )
 
     state_transactions_df["display_category"] = state_transactions_df["category"].map(
-        lambda c: f"{c}{get_emoji(c)}"
+        lambda c: f"{get_emoji(c)}{c}"
     )
     state_transactions_df["display_type"] = state_transactions_df["type"].map(
         lambda t: f"{t}{get_emoji(t)}"

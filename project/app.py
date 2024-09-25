@@ -134,6 +134,15 @@ with expenses_container:
                 "amount_abs",
             ],
             column_config={
+                "transaction_date": st.column_config.DateColumn(
+                    label="date", width="small"
+                ),
+                "display_type": st.column_config.TextColumn(
+                    label="type", width="small"
+                ),
+                "display_category": st.column_config.TextColumn(
+                    label="category", width="small"
+                ),
                 'amount_abs': st.column_config.ProgressColumn(
                     label='amount',
                     width="small",
@@ -142,7 +151,5 @@ with expenses_container:
                     min_value=0,
                     max_value=state_transactions_df['amount_abs'].quantile(0.90),
                 ),
-                "display_category": st.column_config.TextColumn(label="category"),
-                "display_type": st.column_config.TextColumn(label="type"),
             },
         )
