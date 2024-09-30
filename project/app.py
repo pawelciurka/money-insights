@@ -1,5 +1,7 @@
+from typing import Optional
 import streamlit as st
 
+from project.categories import add_category_rule
 from project.utils import get_emoji
 
 st.set_page_config(layout="wide")
@@ -7,8 +9,9 @@ st.set_page_config(layout="wide")
 
 from datetime import datetime, timedelta
 import logging
-
+import pandas as pd
 from project.settings import (
+    CATEGORIES_RULES_FILE_PATH,
     NOW,
 )
 from project.transactions_state import get_state_transactions_df
@@ -16,6 +19,7 @@ from project.transactions_aggregation import (
     FREQUENCIES,
     get_time_aggregated_transactions_df,
 )
+from project.transactions_read import TRANSACTION_COLUMNS
 from project.barplot import get_barplot
 from project import app_data
 
@@ -24,6 +28,36 @@ if not logging.getLogger().hasHandlers():
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
+
+
+@st.dialog("Create transaction rule")
+def create_transaction_rule(transaction_row: pd.Series):
+    column = st.selectbox(
+        "Column",
+        options=[TRANSACTION_COLUMNS.CONTRACTOR, TRANSACTION_COLUMNS.TITLE],
+        index=None,
+    )
+    relation = st.selectbox("Relation", options=['equals', 'contains'])
+    value = st.text_area(
+        "Value",
+        value=transaction_row[column] if column is not None else "",
+        disabled=column is None,
+    )
+    category = st.selectbox(
+        "Category",
+        options=app_data.all_categories,
+        format_func=lambda c: f"{get_emoji(c)}{c}",
+    )
+
+    if st.button("Submit"):
+        add_category_rule(
+            CATEGORIES_RULES_FILE_PATH,
+            column=column,
+            relation=relation,
+            value=value,
+            category=category,
+        )
+        st.rerun()
 
 
 expenses_container = st.container()
@@ -127,10 +161,13 @@ with expenses_container:
     # table
     with transactions_table_tab:
         if len(state_transactions_df) > 0:
-            st.dataframe(
+            dataframe_state = st.dataframe(
                 state_transactions_df,
                 use_container_width=True,
                 hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="transaction_id",
                 column_order=[
                     "transaction_date",
                     "display_type",
@@ -158,4 +195,15 @@ with expenses_container:
                         max_value=state_transactions_df['amount_abs'].quantile(0.90),
                     ),
                 },
+            )
+            selected_row_index: Optional[int] = (
+                dataframe_state['selection']['rows'][0]
+                if dataframe_state['selection']['rows']
+                else None
+            )
+            st.button(
+                "Create transaction rule",
+                on_click=create_transaction_rule,
+                args=(state_transactions_df.iloc[selected_row_index],),
+                disabled=selected_row_index is None,
             )

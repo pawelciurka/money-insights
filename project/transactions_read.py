@@ -1,6 +1,8 @@
+from argparse import Namespace
 from dataclasses import dataclass
 from datetime import timedelta
 import os
+from types import SimpleNamespace
 import pandas as pd
 import unicodedata
 import codecs
@@ -33,28 +35,37 @@ class CsvFile:
     source_type: SourceType
 
 
+TRANSACTION_COLUMNS = SimpleNamespace(
+    TRANSACTION_DATE='transaction_date',
+    CONTRACTOR='contractor',
+    TITLE='title',
+    TRANSACTION_ID='transaction_id',
+    AMOUNT='amount',
+    ACCOUNT_NAME='account_name',
+)
+
 input_cols_ing: list[CsvCol] = [
-    CsvCol(0, "transaction_date"),
-    CsvCol(2, "contractor"),
-    CsvCol(3, "title"),
-    CsvCol(7, "transaction_id"),
-    CsvCol(8, "amount"),
-    CsvCol(14, "account_name"),
+    CsvCol(0, TRANSACTION_COLUMNS.TRANSACTION_DATE),
+    CsvCol(2, TRANSACTION_COLUMNS.CONTRACTOR),
+    CsvCol(3, TRANSACTION_COLUMNS.TITLE),
+    CsvCol(7, TRANSACTION_COLUMNS.TRANSACTION_ID),
+    CsvCol(8, TRANSACTION_COLUMNS.AMOUNT),
+    CsvCol(14, TRANSACTION_COLUMNS.ACCOUNT_NAME),
 ]
 input_cols_mbank: list[CsvCol] = [
-    CsvCol(0, "transaction_date"),
-    CsvCol(3, "title"),
-    CsvCol(4, "contractor"),
-    CsvCol(6, "amount"),
+    CsvCol(0, TRANSACTION_COLUMNS.TRANSACTION_DATE),
+    CsvCol(3, TRANSACTION_COLUMNS.TITLE),
+    CsvCol(4, TRANSACTION_COLUMNS.CONTRACTOR),
+    CsvCol(6, TRANSACTION_COLUMNS.AMOUNT),
 ]
 
 mandatory_out_fields = {
-    "transaction_date",
-    "contractor",
-    "transaction_id",
-    "title",
-    "amount",
-    "account_name",
+    TRANSACTION_COLUMNS.TRANSACTION_DATE,
+    TRANSACTION_COLUMNS.CONTRACTOR,
+    TRANSACTION_COLUMNS.TRANSACTION_ID,
+    TRANSACTION_COLUMNS.TITLE,
+    TRANSACTION_COLUMNS.AMOUNT,
+    TRANSACTION_COLUMNS.ACCOUNT_NAME,
 }
 
 

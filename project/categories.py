@@ -41,11 +41,17 @@ class CategoriesRules:
     items: list[CategoryRule]
     csv_md5: str
 
+    @property
+    def df(self) -> pd.DataFrame:
+        return pd.DataFrame(self.items)
+
 
 categories_definitions_cols = ["rule_id", "column", "relation", "value", "category"]
 
 
-def read_categories_rules(categories_rules_csv_path: str) -> CategoriesRules:
+def read_categories_rules(
+    categories_rules_csv_path: str, add_fallback: bool = True
+) -> CategoriesRules:
     log.info(f"Reading categories rules from {categories_rules_csv_path}")
     df = pd.read_csv(categories_rules_csv_path, usecols=categories_definitions_cols)
 
@@ -72,16 +78,46 @@ def read_categories_rules(categories_rules_csv_path: str) -> CategoriesRules:
 
         items.append(CategoryRule(category=category, contitions=rule_conditions))
 
-    # fallback category - goes last if no previous conditions were met
-    items.append(
-        CategoryRule(
-            category="unrecognized",
-            contitions=[Condition("title", Relation.contains, "")],
+    if add_fallback:
+        # fallback category - goes last if no previous conditions were met
+        items.append(
+            CategoryRule(
+                category="unrecognized",
+                contitions=[Condition("title", Relation.contains, "")],
+            )
         )
-    )
     log.info(f"Read {len(items)} categories rules from {categories_rules_csv_path}")
 
     return categories_rules
+
+
+def add_category_rule(
+    categories_rules_csv_path: str,
+    column: str,
+    relation: str,
+    value: str,
+    category: str,
+):
+    categories_rules = read_categories_rules(
+        categories_rules_csv_path=categories_rules_csv_path, add_fallback=False
+    )
+
+    categories_rules.items.append(
+        CategoryRule(
+            category=category,
+            contitions=[Condition(column=column, relation=relation, value=value)],
+        )
+    )
+    save_categories_rules_as_csv(
+        categories_rules_csv_path=categories_rules_csv_path + '.new',
+        categories_rules=categories_rules,
+    )
+
+
+def save_categories_rules_as_csv(
+    categories_rules_csv_path: str, categories_rules: CategoriesRules
+):
+    categories_rules.df.to_csv(categories_rules_csv_path, index=False)
 
 
 class CategoriesCache(dict):
