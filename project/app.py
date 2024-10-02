@@ -204,6 +204,13 @@ with expenses_container:
             st.button(
                 "Create transaction rule",
                 on_click=create_transaction_rule,
-                args=(state_transactions_df.iloc[selected_row_index],),
+                args=(
+                    (
+                        state_transactions_df.iloc[selected_row_index]
+                        if selected_row_index
+                        else None
+                    ),
+                ),
                 disabled=selected_row_index is None,
+                help="Select a transaction to create a rule based on it",
             )

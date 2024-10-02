@@ -266,7 +266,7 @@ def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
         is_match = all(
             [
                 condition.evaluate(row[condition.column])
-                for condition in category_rule.contitions
+                for condition in category_rule.conditions
             ]
         )
         if is_match:
