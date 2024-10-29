@@ -32,6 +32,8 @@ if not logging.getLogger().hasHandlers():
 
 @st.dialog("Create transaction rule")
 def create_transaction_rule(transaction_row: pd.Series):
+    transaction_row[['title', 'contractor', 'transaction_date']]
+
     column = st.selectbox(
         "Column",
         options=[TRANSACTION_COLUMNS.CONTRACTOR, TRANSACTION_COLUMNS.TITLE],
@@ -46,10 +48,11 @@ def create_transaction_rule(transaction_row: pd.Series):
     category = st.selectbox(
         "Category",
         options=app_data.all_categories,
+        index=None,
         format_func=lambda c: f"{get_emoji(c)}{c}",
     )
 
-    if st.button("Submit"):
+    if st.button("Add to categories rule"):
         add_category_rule(
             CATEGORIES_RULES_FILE_PATH,
             column=column,

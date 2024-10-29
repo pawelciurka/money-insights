@@ -149,7 +149,7 @@ def add_category_rule(
         )
     )
     save_categories_rules_as_csv(
-        categories_rules_csv_path=categories_rules_csv_path + '.new',
+        categories_rules_csv_path=categories_rules_csv_path,
         categories_rules=categories_rules,
     )
 
