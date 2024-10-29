@@ -30,15 +30,15 @@ class Condition:
     relation: Relation
     value: str
 
-    def evaluate(self, other_value: str):
-        def equals(other_value: str):
+    def evaluate(self, other_value: str) -> bool:
+        def equals() -> bool:
             return self.value == other_value
 
-        def contains(other_value: str):
+        def contains() -> bool:
             return self.value in other_value
 
-        evaluator = {"equals": equals, "contains": contains}[self.relation.name]
-        return evaluator(str(other_value))
+        f = {"equals": equals, "contains": contains}[self.relation.name]
+        return f()
 
 
 @dataclass
