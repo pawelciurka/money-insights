@@ -32,7 +32,7 @@ class Condition:
 
     def evaluate(self, other_value: str) -> bool:
         def equals() -> bool:
-            return self.value == other_value
+            return self.value == str(other_value)
 
         def contains() -> bool:
             return self.value in other_value
