@@ -1,10 +1,10 @@
-Fully offline, modern looking tool for analysis of personal finance. Made with Streamlit.
+Fully offline, modern looking tool for personal finance analysis. Made with Streamlit.
 
 # Installation
 * make sure you have `poetry` installed (https://python-poetry.org/docs/#installation)
-* run `poetry install` in project's directory. This will create a virtual environment (by default in `./.venv`)
-* run `poetry shell` to activate the environment
-* run `streamlit run ./project/app.py` to start the app
+* set `poetry config virtualenvs.in-project true` to have the virtualenv in project's directory
+* run `poetry install` in project's directory. This will create a virtual environment in `./.venv`
+* run `poetry run streamlit run .\project\app.py` to start the app
 
 # Usage
 * put your transactions data in `./data/transactions`
