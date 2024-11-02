@@ -41,4 +41,3 @@ if not os.path.isdir(ROOT_INPUT_FILES_DIR):
 os.makedirs(TRANSACTIONS_FILES_DIR, exist_ok=True)
 os.makedirs(Path(CATEGORIES_RULES_FILE_PATH).parent, exist_ok=True)
 os.makedirs(Path(CATEGORIES_CACHE_FILE_PATH).parent, exist_ok=True)
-NOW = datetime.now()

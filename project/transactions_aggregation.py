@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import pandas as pd
-
+import numpy as np
 
 @dataclass
 class FrequencyConfig:
@@ -13,7 +13,7 @@ class FrequencyConfig:
 
 FREQUENCIES = [
     FrequencyConfig("1D", "Day", "%B %d", "left"),
-    FrequencyConfig("1M", "Month", "%B %Y", "right"),
+    FrequencyConfig("1ME", "Month", "%B %Y", "right"),
     FrequencyConfig("1Y", "Year", "%Y", "right"),
     FrequencyConfig("5Y", "5 Years", "%Y", "right"),
     FrequencyConfig("10Y", "10 Years", "%Y", "right"),
@@ -34,7 +34,7 @@ def get_time_aggregated_transactions_df(
     # group by time and aggregate
     out_df = (
         input_df.groupby(groupers, group_keys=True)["amount_abs"]
-        .apply(sum)
+        .apply(np.sum)
         .reset_index()
         .pivot(index="transaction_date", columns="group_value", values="amount_abs")
         .fillna(0.0)

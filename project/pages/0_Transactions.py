@@ -2,18 +2,19 @@ from typing import Optional
 import streamlit as st
 
 from project.categories import add_category_rule
+from project.dates_utils import get_past_month_start_datetime
 from project.utils import get_emoji
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    layout="wide", page_icon=get_emoji("favicon"), page_title="MI | Transactions"
+)
 
 
 from datetime import datetime, timedelta
 import logging
 import pandas as pd
-from project.settings import (
-    CATEGORIES_RULES_FILE_PATH,
-    NOW,
-)
+from project.settings import CATEGORIES_RULES_FILE_PATH
+from project.dates_utils import NOW
 from project.transactions_state import get_state_transactions_df
 from project.transactions_aggregation import (
     FREQUENCIES,
@@ -93,7 +94,9 @@ with expenses_container:
     c1, c2 = st.columns(2)
     with c1:
         start_year = NOW.year if NOW.month > 1 else NOW.year - 1
-        start_date = st.date_input("Start Date", value=datetime(start_year, 1, 1))
+        start_date = st.date_input(
+            "Start Date", value=get_past_month_start_datetime(n_months_back=2)
+        )
         start_date = datetime.combine(start_date, datetime.min.time())
     with c2:
         end_date = st.date_input("End Date")
