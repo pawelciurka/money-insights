@@ -46,3 +46,6 @@ all_categories = sorted(list(set([cr.category for cr in categories_rules.items])
 all_transactions_df = _add_columns_to_raw_transactions(
     _read_all_transactions_raw(), categories_rules, categories_cache
 )
+not_own_transactions_df = all_transactions_df[
+    all_transactions_df['category'] != 'own-transfer'
+]

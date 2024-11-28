@@ -5,10 +5,6 @@ from project.categories import add_category_rule
 from project.dates_utils import get_past_month_start_datetime
 from project.utils import get_emoji
 
-st.set_page_config(
-    layout="wide", page_icon=get_emoji("favicon"), page_title="MI | Transactions"
-)
-
 
 from datetime import datetime, timedelta
 import logging
@@ -44,7 +40,7 @@ def create_category_rule(transaction_row: pd.Series):
     column = st.selectbox(
         "Column",
         options=[TRANSACTION_COLUMNS.CONTRACTOR, TRANSACTION_COLUMNS.TITLE],
-        index=1,
+        index=0,
     )
     relation = st.selectbox("Relation", options=['equals', 'contains'])
     value = st.text_area(
@@ -216,7 +212,13 @@ with expenses_container:
                 if dataframe_state['selection']['rows']
                 else None
             )
-            print(selected_row_index)
+            row_selected = selected_row_index is not None
+            unrecognized_category_selected = (
+                False
+                if not row_selected
+                else state_transactions_df.iloc[selected_row_index]["category"]
+                == "unrecognized"
+            )
             st.button(
                 "Create category rule",
                 on_click=create_category_rule,
@@ -227,6 +229,6 @@ with expenses_container:
                         else None
                     ),
                 ),
-                disabled=selected_row_index is None,
-                help="Select a transaction to create a rule based on it",
+                disabled=not unrecognized_category_selected,
+                help="Select an unrecognized transaction to create a rule based on it",
             )
