@@ -14,7 +14,10 @@ Fully offline, modern looking tool for personal finance analysis. Made with Stre
     * get the list of transactions as CSV
     * place the file in `./data/transactions/ing/`
   * mBank (Polish) 
-    * (...)
+    * login
+    * finanse -> historia ->zestawienie operacji
+    * od 2000
+    * format: csv
     * place the file in `./data/transactions/mbank/`
   * generic format
     * prepare your csv that have these columns: `["transaction_date", "contractor", "transaction_id", "title", "amount", "account_name"]`
