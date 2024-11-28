@@ -72,54 +72,74 @@ expenses_container = st.container()
 
 with expenses_container:
 
-    st.title("Expense visualization")
-
-    frequency = st.selectbox(
-        "Frequency",
-        [f for f in FREQUENCIES],
-        format_func=lambda x: x.display_name,
-        index=1,
-    )
-    group_by_col = st.selectbox(
-        "Group by",
-        ("one_group", "contractor", "account_name", "category"),
-        index=0,
-        format_func=lambda x: {"one_group": "None"}.get(x, x),
-    )
-
-    c1, c2 = st.columns(2)
-    with c1:
+    (
+        frequency_container,
+        group_by_container,
+        start_date_container,
+        end_date_container,
+    ) = st.columns(4)
+    with frequency_container:
+        frequency = st.selectbox(
+            "Frequency",
+            [f for f in FREQUENCIES],
+            format_func=lambda x: x.display_name,
+            index=1,
+        )
+    with group_by_container:
+        group_by_col = st.selectbox(
+            "Group by",
+            ("one_group", "contractor", "account_name", "category"),
+            index=3,
+            format_func=lambda x: {"one_group": "None"}.get(x, x),
+        )
+    with start_date_container:
         start_year = NOW.year if NOW.month > 1 else NOW.year - 1
         start_date = st.date_input(
             "Start Date", value=get_past_month_start_datetime(n_months_back=2)
         )
         start_date = datetime.combine(start_date, datetime.min.time())
-    with c2:
+    with end_date_container:
         end_date = st.date_input("End Date")
         end_date = datetime.combine(end_date, datetime.min.time()) + timedelta(
             hours=23, minutes=59, seconds=59
         )
 
-    container = st.container()
-    all = st.checkbox("Select all categories", value=True)
-
+    select_all_container, _, _, _ = st.columns([0.25, 0.25, 0.25, 0.25])
+    categories_container = st.container()
+    with select_all_container:
+        all = st.checkbox("Select all categories", value=True)
     if all:
-        categories = container.multiselect(
-            "Select one or more categories:",
+        categories = categories_container.multiselect(
+            "Categories",
             options=app_data.all_categories,
             format_func=lambda c: f"{get_emoji(c)}{c}",
             default=[c for c in app_data.all_categories if c != "own-transfer"],
+            label_visibility='collapsed',
         )
     else:
-        categories = container.multiselect(
-            "Select one or more categories:",
+        categories = categories_container.multiselect(
+            "Categories",
             options=app_data.all_categories,
             format_func=lambda c: f"{get_emoji(c)}{c}",
+            label_visibility='collapsed',
         )
 
-    n_biggest_groups = st.slider(
-        "Number of groups", min_value=1, max_value=50, value=7, step=1
-    )
+    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
+
+    with barplot_tab:
+        income_toggle_container, expense_toggle_container = st.columns([1, 1])
+        with income_toggle_container:
+            view_income = st.toggle("Show income", value=False)
+        with expense_toggle_container:
+            view_expense = st.toggle("Show expense", value=True)
+        barplot_container = st.container()
+        n_groups_container = st.container()
+        table_container = st.container()
+
+    with n_groups_container:
+        n_biggest_groups = st.slider(
+            "Number of groups", min_value=1, max_value=50, value=7, step=1
+        )
 
     state_transactions_df = get_state_transactions_df(
         all_transactions_df=app_data.all_transactions_df,
@@ -143,16 +163,9 @@ with expenses_container:
     if len(state_transactions_df) == 0:
         st.toast('All transactions were excluded! Change filters ;)', icon="🚨")
 
-    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
-
     # plot income and outcome
-    with barplot_tab:
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            view_income = st.toggle("Show income", value=False)
-        with col2:
-            view_expense = st.toggle("Show expense", value=True)
 
+    with barplot_container:
         st.plotly_chart(
             get_barplot(
                 _df_income,
@@ -164,6 +177,7 @@ with expenses_container:
             config={'displayModeBar': False},
         )
 
+    with table_container:
         st.dataframe(
             _df_expense.transpose(),
             use_container_width=True,
