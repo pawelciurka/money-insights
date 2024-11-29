@@ -14,10 +14,10 @@ class FrequencyConfig:
 
 FREQUENCIES = [
     FrequencyConfig("1D", "Day", "%B %d", "left"),
-    FrequencyConfig("1ME", "Month", "%B %Y", "right"),
-    FrequencyConfig("1Y", "Year", "%Y", "right"),
-    FrequencyConfig("5Y", "5 Years", "%Y", "right"),
-    FrequencyConfig("10Y", "10 Years", "%Y", "right"),
+    FrequencyConfig("1ME", "Month", "%B %YE", "right"),
+    FrequencyConfig("1Y", "Year", "%YE", "right"),
+    FrequencyConfig("5Y", "5 Years", "%YE", "right"),
+    FrequencyConfig("10Y", "10 Years", "%YE", "right"),
 ]
 
 
