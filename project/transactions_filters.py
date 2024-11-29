@@ -54,7 +54,6 @@ def filter_transactions_date_range(
     start_datetime: datetime,
     end_datetime: datetime,
 ):
-    log.info(f"filtering transactions for date range <{start_datetime}:{end_datetime}>")
     return filter_transactions(
         transactions_df=transactions_df,
         start_datetime=start_datetime,

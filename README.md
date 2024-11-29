@@ -4,7 +4,7 @@ Fully offline, modern looking tool for personal finance analysis. Made with Stre
 * make sure you have `poetry` installed (https://python-poetry.org/docs/#installation)
 * set `poetry config virtualenvs.in-project true` to have the virtualenv in project's directory
 * run `poetry install` in project's directory. This will create a virtual environment in `./.venv`
-* run `poetry run streamlit run .\project\app.py` to start the app
+* run `poetry run streamlit run .\project\Home.py` to start the app
 
 # Usage
 * put your transactions data in `./data/transactions`
