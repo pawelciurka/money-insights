@@ -5,15 +5,32 @@ import plotly.graph_objs as go
 def get_barplot(
     df_income: pd.DataFrame,
     df_outcome: pd.DataFrame,
+    df_delta: pd.DataFrame,
     view_income=True,
     view_expense=True,
+    view_delta=True,
 ):
-    if int(view_expense) + int(view_income) == 1:
-        expense_bar_offset = -0.2
-        income_bar_offset = -0.2
-    else:
-        expense_bar_offset = 0.0
+    income_yaxis = 'y2'
+    if int(view_expense) + int(view_income) + int(view_delta) == 1:
+        expense_bar_offset = income_bar_offset = delta_bar_offset = -0.45
+        expense_bar_width = income_bar_width = delta_bar_width = 0.9
+    elif view_expense and view_income and view_delta:
+        expense_bar_offset = -0.45
+        income_bar_offset = -0.05
+        delta_bar_offset = 0.35
+        expense_bar_width = income_bar_width = 0.4
+        delta_bar_width = 0.1
+    elif view_income and view_delta:
         income_bar_offset = -0.4
+        delta_bar_offset = 0.0
+        income_bar_width = 0.4
+        delta_bar_width = 0.1
+        income_yaxis = None # misc bug, not obvious solution
+    elif view_expense and (view_income or view_delta):
+        expense_bar_offset = -0.4
+        income_bar_offset = delta_bar_offset = 0.0
+        expense_bar_width = income_bar_width = 0.4
+        delta_bar_width = 0.1
 
     fig = go.Figure(
         layout=go.Layout(
@@ -30,10 +47,15 @@ def get_barplot(
                 overlaying="y",
                 anchor="x",
             ),
+            yaxis3=go.layout.YAxis(
+                visible=True,
+                matches="y",
+                overlaying="y",
+                anchor="x",
+            ),
             font=dict(size=12),
             legend_orientation="h",
             hovermode="x",
-            # margin=dict(b=0, t=10, l=0, r=10),
         )
     )
 
@@ -48,13 +70,12 @@ def get_barplot(
                 yaxis=f"y1",
                 offsetgroup="1",
                 offset=expense_bar_offset,
-                width=0.4,
+                width=expense_bar_width,
                 legendgroup="outcome",
                 legendgrouptitle_text="outcome",
                 name=col,
             )
 
-    # Add the traces
     if view_income:
         for col in df_income.columns:
             if (df_income[col] == 0).all():
@@ -62,16 +83,31 @@ def get_barplot(
             fig.add_bar(
                 x=df_income.index,
                 y=df_income[col],
-                # Set the right yaxis depending on the selected product (from enumerate)
-                yaxis=f"y2",
-                # Offset the bar trace, offset needs to match the width
-                # The values here are in milliseconds, 1billion ms is ~1/3 month
+                yaxis=income_yaxis,
                 offsetgroup="2",
                 offset=income_bar_offset,
-                width=0.4,
+                width=income_bar_width,
                 legendgroup="income",
                 legendgrouptitle_text="income",
                 name=col,
             )
 
+    if view_delta:
+        colors = ['green' if v > 0.0 else 'red' for v in df_delta['delta']]
+
+        fig.add_bar(
+            x=df_delta.index,
+            y=df_delta['delta'],
+            # Set the right yaxis depending on the selected product (from enumerate)
+            yaxis=f"y3",
+            offsetgroup="3",
+            offset=delta_bar_offset,
+            width=delta_bar_width,
+            legendgroup="delta",
+            legendgrouptitle_text="delta",
+            name='delta',
+            marker={'color': colors},
+        )
+
+    fig.update_layout(margin=dict(l=0, r=0, t=10, b=0))
     return fig

@@ -14,6 +14,7 @@ from project.dates_utils import NOW
 from project.transactions_state import get_state_transactions_df
 from project.transactions_aggregation import (
     FREQUENCIES,
+    get_time_aggregated_summarized_delta_df,
     get_time_aggregated_transactions_df,
 )
 from project.transactions_read import TRANSACTION_COLUMNS
@@ -122,16 +123,18 @@ with expenses_container:
     else:
         categories = categories_container.multiselect(**multiselect_kwargs)
 
-    barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
+    barplot_tab, transactions_table_tab = st.tabs(["Stacked Bar", "Transactions List"])
 
     with barplot_tab:
-        income_toggle_container, expense_toggle_container, _, _ = st.columns(
-            [0.25, 0.25, 0.25, 0.25]
+        income_toggle_container, expense_toggle_container, delta_toggle_container, _ = (
+            st.columns([0.25, 0.25, 0.25, 0.25])
         )
         with income_toggle_container:
             view_income = st.toggle("Show income", value=False)
         with expense_toggle_container:
             view_expense = st.toggle("Show expense", value=True)
+        with delta_toggle_container:
+            view_delta = st.toggle("Show delta", value=True)
         barplot_container = st.container()
         n_groups_container = st.container()
         table_container = st.container()
@@ -150,15 +153,16 @@ with expenses_container:
         n_biggest_groups=n_biggest_groups,
     )
 
+    _df_income = get_time_aggregated_transactions_df(
+        state_transactions_df[state_transactions_df["type"] == "income"],
+        frequency=frequency,
+    )
     _df_expense = get_time_aggregated_transactions_df(
         state_transactions_df[state_transactions_df["type"] == "outcome"],
         frequency=frequency,
     )
 
-    _df_income = get_time_aggregated_transactions_df(
-        state_transactions_df[state_transactions_df["type"] == "income"],
-        frequency=frequency,
-    )
+    _df_delta = get_time_aggregated_summarized_delta_df(_df_income, _df_expense)
 
     if len(state_transactions_df) == 0:
         st.toast('All transactions were excluded! Change filters ;)', icon="🚨")
@@ -168,8 +172,10 @@ with expenses_container:
             get_barplot(
                 _df_income,
                 _df_expense,
+                _df_delta,
                 view_income=view_income,
                 view_expense=view_expense,
+                view_delta=view_delta,
             ),
             use_container_width=True,
             config={'displayModeBar': False},

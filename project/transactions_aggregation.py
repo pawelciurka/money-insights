@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
+
 @dataclass
 class FrequencyConfig:
     tag: str  # e.g. 1D, see: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
@@ -43,6 +44,19 @@ def get_time_aggregated_transactions_df(
     out_df.index = out_df.index.map(lambda x: x.strftime(frequency.value_format))
 
     return out_df
+
+
+def get_time_aggregated_summarized_delta_df(
+    income_df: pd.DataFrame, expense_df: pd.DataFrame
+) -> pd.DataFrame:
+    df = pd.DataFrame(
+        {
+            'income': income_df.apply(sum, axis=1),
+            'expense': expense_df.apply(sum, axis=1),
+        }
+    ).fillna(0.0)
+    df['delta'] = df['income'] - df['expense']
+    return df
 
 
 def get_significant_group_values(
