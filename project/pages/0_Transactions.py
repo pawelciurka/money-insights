@@ -108,26 +108,26 @@ with expenses_container:
     categories_container = st.container()
     with select_all_container:
         all = st.checkbox("Select all categories", value=True)
+    multiselect_kwargs = {
+        'label': "Categories",
+        'options': app_data.all_categories,
+        'format_func': lambda c: f"{get_emoji(c)}{c}",
+        'label_visibility': 'collapsed',
+    }
     if all:
-        categories = categories_container.multiselect(
-            "Categories",
-            options=app_data.all_categories,
-            format_func=lambda c: f"{get_emoji(c)}{c}",
-            default=[c for c in app_data.all_categories if c != "own-transfer"],
-            label_visibility='collapsed',
-        )
+        multiselect_kwargs['default'] = [
+            c for c in app_data.all_categories if c != "own-transfer"
+        ]
+        categories = categories_container.multiselect(**multiselect_kwargs)
     else:
-        categories = categories_container.multiselect(
-            "Categories",
-            options=app_data.all_categories,
-            format_func=lambda c: f"{get_emoji(c)}{c}",
-            label_visibility='collapsed',
-        )
+        categories = categories_container.multiselect(**multiselect_kwargs)
 
     barplot_tab, transactions_table_tab = st.tabs(["Bars", "Transactions"])
 
     with barplot_tab:
-        income_toggle_container, expense_toggle_container = st.columns([1, 1])
+        income_toggle_container, expense_toggle_container, _, _ = st.columns(
+            [0.25, 0.25, 0.25, 0.25]
+        )
         with income_toggle_container:
             view_income = st.toggle("Show income", value=False)
         with expense_toggle_container:
@@ -162,8 +162,6 @@ with expenses_container:
 
     if len(state_transactions_df) == 0:
         st.toast('All transactions were excluded! Change filters ;)', icon="🚨")
-
-    # plot income and outcome
 
     with barplot_container:
         st.plotly_chart(
