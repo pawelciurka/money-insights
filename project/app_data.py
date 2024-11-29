@@ -1,4 +1,3 @@
-# read categories cache
 import logging
 
 import streamlit as st
