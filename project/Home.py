@@ -6,7 +6,6 @@ st.set_page_config(
     layout="wide", page_icon=get_emoji("favicon"), page_title="MI | Transactions"
 )
 logging.basicConfig(level=logging.INFO)
-import project.app_data
 
 
 # Add a title and subtitle
@@ -27,3 +26,4 @@ st.write(
 
 # Optional: Add a placeholder for future updates
 st.info("More features are coming soon! Stay tuned.")
+import project.app_data

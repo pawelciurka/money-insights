@@ -30,13 +30,6 @@ if not logging.getLogger().hasHandlers():
 
 @st.dialog("Create categories rule")
 def create_category_rule(transaction_row: pd.Series):
-    transaction_row[
-        [
-            TRANSACTION_COLUMNS.TITLE,
-            TRANSACTION_COLUMNS.CONTRACTOR,
-            TRANSACTION_COLUMNS.TRANSACTION_DATE,
-        ]
-    ]
 
     column = st.selectbox(
         "Column",
@@ -105,20 +98,31 @@ with expenses_container:
             hours=23, minutes=59, seconds=59
         )
 
-    select_all_container, _, _, _ = st.columns([0.25, 0.25, 0.25, 0.25])
+    pills_container = st.container()
+
+    with pills_container:
+        categories_pills_labels = {0: 'all categories', 1: 'unrecognized only'}
+        categories_lists = {
+            0: [c for c in app_data.all_categories if c != "own-transfer"],
+            1: ['unrecognized'],
+        }
+        selected_category_pill_index = st.pills(
+            label='categories pills',
+            options=categories_pills_labels.keys(),
+            format_func=lambda i: categories_pills_labels[i],
+            label_visibility='collapsed',
+            default=0,
+        )
+
     categories_container = st.container()
-    with select_all_container:
-        all = st.checkbox("Select all categories", value=True)
     multiselect_kwargs = {
         'label': "Categories",
         'options': app_data.all_categories,
         'format_func': lambda c: f"{get_emoji(c)}{c}",
         'label_visibility': 'collapsed',
     }
-    if all:
-        multiselect_kwargs['default'] = [
-            c for c in app_data.all_categories if c != "own-transfer"
-        ]
+    if selected_category_pill_index is not None:
+        multiselect_kwargs['default'] = categories_lists[selected_category_pill_index]
         categories = categories_container.multiselect(**multiselect_kwargs)
     else:
         categories = categories_container.multiselect(**multiselect_kwargs)
@@ -243,7 +247,7 @@ with expenses_container:
                 args=(
                     (
                         state_transactions_df.iloc[selected_row_index]
-                        if selected_row_index
+                        if selected_row_index is not None
                         else None
                     ),
                 ),

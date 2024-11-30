@@ -116,9 +116,11 @@ def get_day_of_last_transaction(
     ).day
 
 
-def get_metrics(transactions_df: pd.DataFrame) -> list[Metric]:
-    last_month_datetime = get_past_month_start_datetime(n_months_back=1)
-    second_to_last_month_datetime = get_past_month_start_datetime(n_months_back=2)
+def get_metrics(transactions_df: pd.DataFrame, n_months_back=1) -> list[Metric]:
+    last_month_datetime = get_past_month_start_datetime(n_months_back=n_months_back)
+    second_to_last_month_datetime = get_past_month_start_datetime(
+        n_months_back=n_months_back + 1
+    )
     last_month_year_and_month = (last_month_datetime.year, last_month_datetime.month)
     second_to_last_month_year_and_month = (
         second_to_last_month_datetime.year,
