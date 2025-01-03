@@ -15,7 +15,7 @@ Fully offline, modern looking tool for personal finance analysis. Made with Stre
     * place the file in `./data/transactions/ing/`
   * mBank (Polish) 
     * login
-    * finanse -> historia ->zestawienie operacji
+    * finanse -> historia -> zestawienie operacji
     * od 2000
     * format: csv
     * place the file in `./data/transactions/mbank/`
