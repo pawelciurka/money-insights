@@ -6,6 +6,7 @@ from datetime import datetime
 log = logging.getLogger(__name__)
 
 
+@st.cache_data
 def filter_transactions(
     transactions_df: pd.DataFrame,
     start_datetime: datetime | None = None,

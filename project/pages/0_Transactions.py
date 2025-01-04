@@ -19,13 +19,15 @@ from project.transactions_aggregation import (
 )
 from project.transactions_read import TRANSACTION_COLUMNS
 from project.barplot import get_barplot
-from project import app_data
+from project.app_data import read_fresh_data
 
 log = logging.getLogger(__name__)
 if not logging.getLogger().hasHandlers():
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
+
+all_categories, all_transactions_df = read_fresh_data()
 
 
 @st.dialog("Create categories rule")
@@ -44,7 +46,7 @@ def create_category_rule(transaction_row: pd.Series):
     )
     category = st.selectbox(
         "Category",
-        options=app_data.all_categories,
+        options=all_categories,
         index=None,
         format_func=lambda c: f"{get_emoji(c)}{c}",
     )
@@ -103,7 +105,7 @@ with expenses_container:
     with pills_container:
         categories_pills_labels = {0: 'all categories', 1: 'unrecognized only'}
         categories_lists = {
-            0: [c for c in app_data.all_categories if c != "own-transfer"],
+            0: [c for c in all_categories if c != "own-transfer"],
             1: ['unrecognized'],
         }
         selected_category_pill_index = st.pills(
@@ -117,7 +119,7 @@ with expenses_container:
     categories_container = st.container()
     multiselect_kwargs = {
         'label': "Categories",
-        'options': app_data.all_categories,
+        'options': all_categories,
         'format_func': lambda c: f"{get_emoji(c)}{c}",
         'label_visibility': 'collapsed',
     }
@@ -149,7 +151,7 @@ with expenses_container:
         )
 
     state_transactions_df = get_state_transactions_df(
-        all_transactions_df=app_data.all_transactions_df,
+        all_transactions_df=all_transactions_df,
         categories=categories,
         start_date=start_date,
         end_date=end_date,

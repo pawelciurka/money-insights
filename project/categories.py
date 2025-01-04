@@ -197,6 +197,3 @@ class CategoriesCache(dict):
 
     def __hash__(self):
         return self.rules_csv_md5
-
-    def __eq__(self, other):
-        return self.rules_csv_md5 == self.rules_csv_md5

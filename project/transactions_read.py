@@ -13,6 +13,7 @@ import re
 from project.categories import CategoriesCache, CategoriesRules, CategoryRule
 
 from project.utils import hash_string, list_files
+import streamlit as st
 
 log = logging.getLogger(__name__)
 
@@ -217,6 +218,7 @@ PARSER_BY_SOURCE_TYPE: dict[str, type] = {
 }
 
 
+@st.cache_data
 def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
     dfs = []
     for csv_file in csv_files:

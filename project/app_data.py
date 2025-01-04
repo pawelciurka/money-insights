@@ -28,7 +28,6 @@ def _add_columns_to_raw_transactions(
     return add_columns(transactions_raw_df, categories_rules, categories_cache)
 
 
-@st.cache_data
 def _read_all_transactions_raw() -> pd.DataFrame:
     log.info("Reading raw transactions from source files")
     df = parse_directory_as_df(TRANSACTIONS_FILES_DIR)
@@ -36,15 +35,18 @@ def _read_all_transactions_raw() -> pd.DataFrame:
     return df
 
 
-categories_cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
-categories_cache.read()
+def read_fresh_data(read_categories_cache=False):
+    categories_cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
+    if read_categories_cache:
+        categories_cache.read()
 
-categories_rules = read_categories_rules(CATEGORIES_RULES_FILE_PATH)
-all_categories = sorted(list(set([cr.category for cr in categories_rules.items])))
+    categories_rules = read_categories_rules(
+        CATEGORIES_RULES_FILE_PATH, add_fallback=True
+    )
+    all_categories = sorted(list(set([cr.category for cr in categories_rules.items])))
 
-all_transactions_df = _add_columns_to_raw_transactions(
-    _read_all_transactions_raw(), categories_rules, categories_cache
-)
-not_own_transactions_df = all_transactions_df[
-    all_transactions_df['category'] != 'own-transfer'
-]
+    all_transactions_df = _add_columns_to_raw_transactions(
+        _read_all_transactions_raw(), categories_rules, categories_cache
+    )
+
+    return all_categories, all_transactions_df
