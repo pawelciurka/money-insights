@@ -22,6 +22,7 @@ CSV_COL = SimpleNamespace(
 class Relation(Enum):
     equals = 1
     contains = 2
+    is_lower_than = 3
 
 
 @dataclass
@@ -37,13 +38,19 @@ class Condition:
         def contains() -> bool:
             return self.value in other_value
 
-        f = {"equals": equals, "contains": contains}[self.relation.name]
-        return f()
+        def is_lower_than() -> bool:
+            return self.value >= other_value
+
+        return {
+            "equals": equals,
+            "contains": contains,
+            "is_lower_than": is_lower_than,
+        }[self.relation.name]()
 
 
 @dataclass
 class CategoryRule:
-    rule_id: int
+    rule_id: int | None
     category: str
     conditions: list[Condition]
 
@@ -118,7 +125,7 @@ def read_categories_rules(
         # fallback category - goes last if no previous conditions were met
         items.append(
             CategoryRule(
-                rule_id=-sys.maxsize,
+                rule_id=None,
                 category="unrecognized",
                 conditions=[Condition("title", Relation.contains, "")],
             )
@@ -163,33 +170,29 @@ def save_categories_rules_as_csv(
 
 
 class CategoriesCache(dict):
-    CSV_COLS = ["transaction_id", "category", "rules_csv_md5"]
+    CSV_COLS = ["transaction_id", "category", "category_rule_id"]
 
     def __init__(self, *, file_path) -> None:
         self.file_path = file_path
-        self.rules_csv_md5 = None
         super().__init__()
 
     def read(self) -> None:
         try:
-            log.info(f"Trying to read precomputed categories from {self.file_path}")
+            log.info(f"Trying to read categories cache from {self.file_path}")
             df = pd.read_csv(self.file_path, usecols=self.CSV_COLS)
         except:
-            log.info(f"Couldn't read precomputed categories from {self.file_path}")
+            log.info(f"Couldn't read categories cache from {self.file_path}")
             return
         for r in df.itertuples():
-            self[r.__getattribute__(self.CSV_COLS[0])] = r.__getattribute__(
-                self.CSV_COLS[1]
+            self[r.__getattribute__(self.CSV_COLS[0])] = (
+                r.__getattribute__(self.CSV_COLS[1]),
+                r.__getattribute__(self.CSV_COLS[2]),
             )
-        self.md5 = list(set(df[self.CSV_COLS[2]]))[0]
-        logging.info(f"Read {len(df)} precomputed categories")
+        logging.info(f"Read categories for {len(df)} transactions")
 
-    def write(self, category_by_id: dict[str, str], rules_csv_md5: str) -> None:
-        df = pd.DataFrame.from_dict(
-            category_by_id, orient="index", columns=[self.CSV_COLS[1]]
-        )
-        df["rules_csv_md5"] = rules_csv_md5
-        df.to_csv(self.file_path, index_label=self.CSV_COLS[0])
+    def write(self, transactions_df: pd.DataFrame) -> None:
+        df = transactions_df[self.CSV_COLS].copy()
+        df.to_csv(self.file_path, index=False)
 
     @property
     def is_empty(self):

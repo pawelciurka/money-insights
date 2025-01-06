@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 import os
 from types import SimpleNamespace
+import numpy as np
 import pandas as pd
 import unicodedata
 import codecs
@@ -263,7 +264,9 @@ def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:
     return parse_csv_files_as_df(csv_files)
 
 
-def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
+def get_category(
+    row: pd.Series, categories_rules: list[CategoryRule]
+) -> CategoryRule | None:
     for category_rule in categories_rules:
         is_match = all(
             [
@@ -272,8 +275,8 @@ def get_category(row: pd.Series, categories_rules: list[CategoryRule]):
             ]
         )
         if is_match:
-            return category_rule.category
-    return "unrecognized"
+            return category_rule
+    return None
 
 
 def add_columns(
@@ -283,6 +286,10 @@ def add_columns(
 ) -> pd.DataFrame:
     df = df.copy()
     df["transaction_date"] = df["transaction_date"].map(lambda d: pd.to_datetime(d))
+    df["transaction_date_isostr"] = df["transaction_date"].map(
+        lambda d: d.strftime("%Y-%m-%d")
+    )
+
     df["amount"] = df["amount"].map(
         lambda x: float(re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", "."))
     )
@@ -290,20 +297,43 @@ def add_columns(
     df["amount_abs"] = df["amount"].map(lambda x: abs(x))
     df["one_group"] = "all"
 
-    if categories_cache.is_empty or categories_cache.md5 != categories_rules.csv_md5:
-        log.info("Precomputed categories cache is invalid, recalculating categories")
-        df["category"] = df.apply(get_category, args=(categories_rules.items,), axis=1)
-        categories_cache.write(
+    log.info("Setting categories")
+    n_recomputed_transactions = 0
+    n_read_from_cache = 0
+
+    categories_data = []
+    for i, transaction in df.iterrows():
+        category, category_rule_id = categories_cache.get(
+            transaction["transaction_id"],
+            ("unrecognized", np.NaN),
+        )
+
+        if np.isnan(category_rule_id):
+            n_recomputed_transactions += 1
+            category_rule = get_category(transaction, categories_rules.items)
+            if category_rule:
+                category, category_rule_id = (
+                    category_rule.category,
+                    category_rule.rule_id,
+                )
+            else:
+                category, category_rule_id = "unrecognized", None
+        else:
+            n_read_from_cache += 1
+
+        categories_data.append(
             {
-                r.__getattribute__("transaction_id"): r.__getattribute__("category")
-                for r in df.itertuples()
-            },
-            categories_rules.csv_md5,
+                'index': i,
+                'category': category,
+                'category_rule_id': category_rule_id,
+            }
         )
-    else:
-        log.info("Using precomputed categories")
-        df["category"] = df["transaction_id"].map(
-            lambda id: categories_cache.get(id, 'unrecognized')
-        )
+
+    df = df.join(pd.DataFrame(categories_data).set_index('index'))
+
+    log.info(f"Categories recomputed: {n_recomputed_transactions}")
+    log.info(f"Categories read from cache: {n_read_from_cache}")
+
+    categories_cache.write(df)
 
     return df

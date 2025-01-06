@@ -195,6 +195,7 @@ with expenses_container:
 
     # table
     with transactions_table_tab:
+        st.text(f"{len(state_transactions_df)} transactions")
         if len(state_transactions_df) > 0:
             dataframe_state = st.dataframe(
                 state_transactions_df,

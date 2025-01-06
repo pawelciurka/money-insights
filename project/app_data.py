@@ -35,10 +35,9 @@ def _read_all_transactions_raw() -> pd.DataFrame:
     return df
 
 
-def read_fresh_data(read_categories_cache=False):
+def read_fresh_data():
     categories_cache = CategoriesCache(file_path=CATEGORIES_CACHE_FILE_PATH)
-    if read_categories_cache:
-        categories_cache.read()
+    categories_cache.read()
 
     categories_rules = read_categories_rules(
         CATEGORIES_RULES_FILE_PATH, add_fallback=True
