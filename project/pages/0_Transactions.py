@@ -145,6 +145,13 @@ with expenses_container:
         n_groups_container = st.container()
         table_container = st.container()
 
+    with transactions_table_tab:
+        columns_toggle_container, _, _, transactions_number_container = st.columns(
+            [0.25, 0.25, 0.25, 0.25]
+        )
+        with columns_toggle_container:
+            show_all_columns = st.toggle("Show all columns", value=False)
+
     with n_groups_container:
         n_biggest_groups = st.slider(
             "Number of groups", min_value=1, max_value=50, value=7, step=1
@@ -195,7 +202,8 @@ with expenses_container:
 
     # table
     with transactions_table_tab:
-        st.text(f"{len(state_transactions_df)} transactions")
+        with transactions_number_container:
+            st.text(f"{len(state_transactions_df)} transactions")
         if len(state_transactions_df) > 0:
             dataframe_state = st.dataframe(
                 state_transactions_df,
@@ -204,14 +212,18 @@ with expenses_container:
                 on_select="rerun",
                 selection_mode="single-row",
                 key="transaction_id",
-                column_order=[
-                    "transaction_date",
-                    "display_type",
-                    "display_category",
-                    "contractor",
-                    "title",
-                    "amount_abs",
-                ],
+                column_order=(
+                    [
+                        "transaction_date",
+                        "display_type",
+                        "display_category",
+                        "contractor",
+                        "title",
+                        "amount_abs",
+                    ]
+                    if not show_all_columns
+                    else None
+                ),
                 column_config={
                     "transaction_date": st.column_config.DateColumn(
                         label="date", width="small"

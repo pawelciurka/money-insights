@@ -44,6 +44,7 @@ TRANSACTION_COLUMNS = SimpleNamespace(
     TRANSACTION_ID='transaction_id',
     AMOUNT='amount',
     ACCOUNT_NAME='account_name',
+    SOURCE_FILE_PATH="source_file_path",
 )
 
 input_cols_ing: list[CsvCol] = [
@@ -68,6 +69,7 @@ mandatory_out_fields = {
     TRANSACTION_COLUMNS.TITLE,
     TRANSACTION_COLUMNS.AMOUNT,
     TRANSACTION_COLUMNS.ACCOUNT_NAME,
+    TRANSACTION_COLUMNS.SOURCE_FILE_PATH,
 }
 
 
@@ -103,6 +105,7 @@ class Parser:
 
     def parse_and_validate(self, file_path: str) -> pd.DataFrame:
         df = self.parse_raw(file_path)
+        df[TRANSACTION_COLUMNS.SOURCE_FILE_PATH] = file_path
         df = self.clean_raw(df)
         err = self.validate_raw(df)
 
@@ -311,6 +314,7 @@ def add_columns(
         if np.isnan(category_rule_id):
             n_recomputed_transactions += 1
             category_rule = get_category(transaction, categories_rules.items)
+
             if category_rule:
                 category, category_rule_id = (
                     category_rule.category,
@@ -328,7 +332,7 @@ def add_columns(
                 'category_rule_id': category_rule_id,
             }
         )
-
+    log.info("Joining")
     df = df.join(pd.DataFrame(categories_data).set_index('index'))
 
     log.info(f"Categories recomputed: {n_recomputed_transactions}")
