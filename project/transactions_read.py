@@ -34,6 +34,7 @@ class SourceType(Enum):
 @dataclass
 class CsvFile:
     path: str
+    relative_path: str
     source_type: SourceType
 
 
@@ -45,6 +46,7 @@ TRANSACTION_COLUMNS = SimpleNamespace(
     AMOUNT='amount',
     ACCOUNT_NAME='account_name',
     SOURCE_FILE_PATH="source_file_path",
+    SOURCE_TYPE="source_type",
 )
 
 input_cols_ing: list[CsvCol] = [
@@ -69,7 +71,6 @@ mandatory_out_fields = {
     TRANSACTION_COLUMNS.TITLE,
     TRANSACTION_COLUMNS.AMOUNT,
     TRANSACTION_COLUMNS.ACCOUNT_NAME,
-    TRANSACTION_COLUMNS.SOURCE_FILE_PATH,
 }
 
 
@@ -105,7 +106,6 @@ class Parser:
 
     def parse_and_validate(self, file_path: str) -> pd.DataFrame:
         df = self.parse_raw(file_path)
-        df[TRANSACTION_COLUMNS.SOURCE_FILE_PATH] = file_path
         df = self.clean_raw(df)
         err = self.validate_raw(df)
 
@@ -229,6 +229,8 @@ def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
         log.info(f"Parsing {csv_file}")
         parser = PARSER_BY_SOURCE_TYPE[csv_file.source_type.name]()
         df = parser.parse_and_validate(csv_file.path)
+        df[TRANSACTION_COLUMNS.SOURCE_FILE_PATH] = csv_file.relative_path
+        df[TRANSACTION_COLUMNS.SOURCE_TYPE] = str(csv_file.source_type.name)
         log.info(f"{len(df)} transaction read from {csv_file.path}")
         dfs.append(df)
 
@@ -236,7 +238,7 @@ def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
     return df
 
 
-def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:
+def discover_csv_files(root_input_files_dir: str) -> list[CsvFile]:
     """
     Example directories structure:
     <ROOT_INPUT_FILES_DIR>/ing/file_1.csv
@@ -258,13 +260,19 @@ def parse_directory_as_df(root_input_files_dir) -> pd.DataFrame:
             file_path = os.path.join(single_source_dir, file_name)
             if not file_name.lower().endswith(".csv"):
                 continue
-            csv_files.append(CsvFile(file_path, source_type))
+            csv_files.append(
+                CsvFile(
+                    path=file_path,
+                    relative_path=os.path.relpath(file_path, root_input_files_dir),
+                    source_type=source_type,
+                )
+            )
 
     if len(csv_files) == 0:
         msg = f"No input files discovered in {root_input_files_dir}"
         raise ValueError(msg)
 
-    return parse_csv_files_as_df(csv_files)
+    return csv_files
 
 
 def get_category(
@@ -301,19 +309,14 @@ def add_columns(
     df["one_group"] = "all"
 
     log.info("Setting categories")
-    n_recomputed_transactions = 0
-    n_read_from_cache = 0
 
-    categories_data = []
-    for i, transaction in df.iterrows():
+    def process_row(row):
         category, category_rule_id = categories_cache.get(
-            transaction["transaction_id"],
-            ("unrecognized", np.NaN),
+            row['transaction_id'], ("unrecognized", np.NaN)
         )
 
         if np.isnan(category_rule_id):
-            n_recomputed_transactions += 1
-            category_rule = get_category(transaction, categories_rules.items)
+            category_rule = get_category(row, categories_rules.items)
 
             if category_rule:
                 category, category_rule_id = (
@@ -322,22 +325,14 @@ def add_columns(
                 )
             else:
                 category, category_rule_id = "unrecognized", None
-        else:
-            n_read_from_cache += 1
+        return category, category_rule_id
 
-        categories_data.append(
-            {
-                'index': i,
-                'category': category,
-                'category_rule_id': category_rule_id,
-            }
-        )
-    log.info("Joining")
-    df = df.join(pd.DataFrame(categories_data).set_index('index'))
+    category_and_rule_id = df.apply(process_row, axis=1)
 
-    log.info(f"Categories recomputed: {n_recomputed_transactions}")
-    log.info(f"Categories read from cache: {n_read_from_cache}")
+    df["category"] = category_and_rule_id.map(lambda r: r[0])
+    df["category_rule_id"] = category_and_rule_id.map(lambda r: r[1])
 
+    log.info("Saving cache")
     categories_cache.write(df)
 
     return df

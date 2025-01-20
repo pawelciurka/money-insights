@@ -67,7 +67,6 @@ def create_category_rule(transaction_row: pd.Series):
 expenses_container = st.container()
 
 with expenses_container:
-
     (
         frequency_container,
         group_by_container,

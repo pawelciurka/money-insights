@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
+from project.transactions_read import TRANSACTION_COLUMNS
+
 
 @dataclass
 class FrequencyConfig:
@@ -68,3 +70,20 @@ def get_significant_group_values(
         .sort_values(ascending=False)[:n_biggest_groups]
     )
     return {g for g, _ in biggest_groups_names.items()}
+
+
+def get_file_path_aggregated_df(transactions_df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        transactions_df.groupby(TRANSACTION_COLUMNS.SOURCE_FILE_PATH)
+        .apply(
+            lambda _df: pd.Series(
+                {
+                    "source_type": set(_df[TRANSACTION_COLUMNS.SOURCE_TYPE]),
+                    'n_transactions': len(_df),
+                    'min_date': min(_df['transaction_date_isostr']),
+                    'max_date': max(_df['transaction_date_isostr']),
+                }
+            )
+        )
+        .sort_values("max_date")
+    )

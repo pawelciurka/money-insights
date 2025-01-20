@@ -1,5 +1,7 @@
 import logging
 import streamlit as st
+from project.settings import TRANSACTIONS_FILES_DIR
+from project.transactions_aggregation import get_file_path_aggregated_df
 from project.utils import get_emoji
 from project.app_data import read_fresh_data
 
@@ -29,3 +31,25 @@ st.write(
 st.info("More features are coming soon! Stay tuned.")
 
 read_fresh_data()
+
+_, transactions_df = read_fresh_data()
+
+
+st.subheader("List of input files")
+st.write(
+    f"Place your files under: `{TRANSACTIONS_FILES_DIR}`. "
+    "They should be placed in source specific directories. "
+    "There are 3 sources supported: `ing`, `mbank` and `generic`. "
+)
+
+
+file_paths_df = get_file_path_aggregated_df(transactions_df)
+
+event = st.dataframe(
+    file_paths_df,
+    height=36 * (len(file_paths_df) + 1),
+    selection_mode='multi-row',
+    key='source_file_path',
+    on_select='rerun',
+    use_container_width=True,
+)
