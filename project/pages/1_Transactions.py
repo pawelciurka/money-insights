@@ -35,7 +35,11 @@ def create_category_rule(transaction_row: pd.Series):
 
     column = st.selectbox(
         "Column",
-        options=[TRANSACTION_COLUMNS.CONTRACTOR, TRANSACTION_COLUMNS.TITLE],
+        options=[
+            TRANSACTION_COLUMNS.CONTRACTOR,
+            TRANSACTION_COLUMNS.TITLE,
+            TRANSACTION_COLUMNS.TRANSACTION_ID,
+        ],
         index=0,
     )
     relation = st.selectbox("Relation", options=['equals', 'contains'])
@@ -128,7 +132,9 @@ with expenses_container:
     else:
         categories = categories_container.multiselect(**multiselect_kwargs)
 
-    barplot_tab, transactions_table_tab = st.tabs(["Stacked Bar", "Transactions List"])
+    transactions_table_tab, barplot_tab = st.tabs(
+        ["Transactions List", "Stacked Bar"],
+    )
 
     with barplot_tab:
         income_toggle_container, expense_toggle_container, delta_toggle_container, _ = (
@@ -145,11 +151,24 @@ with expenses_container:
         table_container = st.container()
 
     with transactions_table_tab:
-        columns_toggle_container, _, _, transactions_number_container = st.columns(
-            [0.25, 0.25, 0.25, 0.25]
-        )
+        (
+            order_by_col_container,
+            columns_toggle_container,
+            _,
+            transactions_number_container,
+        ) = st.columns([0.25, 0.25, 0.25, 0.25])
         with columns_toggle_container:
             show_all_columns = st.toggle("Show all columns", value=False)
+        with order_by_col_container:
+            order_by_command = st.selectbox(
+                label="Order by",
+                options=[
+                    "transaction_date:ascending",
+                    "transaction_date:descending",
+                    "amount_abs:descending",
+                ],
+                label_visibility="collapsed",
+            )
 
     with n_groups_container:
         n_biggest_groups = st.slider(
@@ -163,6 +182,7 @@ with expenses_container:
         end_date=end_date,
         group_by_col=group_by_col,
         n_biggest_groups=n_biggest_groups,
+        order_by_command=order_by_command,
     )
 
     _df_income = get_time_aggregated_transactions_df(
@@ -225,7 +245,7 @@ with expenses_container:
                 ),
                 column_config={
                     "transaction_date": st.column_config.DateColumn(
-                        label="date", width="small"
+                        label="transaction_date", width="small"
                     ),
                     "display_type": st.column_config.TextColumn(
                         label="type", width="small"

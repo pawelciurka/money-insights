@@ -12,6 +12,7 @@ def get_state_transactions_df(
     end_date,
     group_by_col: str,
     n_biggest_groups: int,
+    order_by_command: str | None = None,
 ) -> pd.DataFrame:
 
     # filter by date range
@@ -32,6 +33,15 @@ def get_state_transactions_df(
     state_transactions_df["group_value"] = state_transactions_df[group_by_col].map(
         lambda group: group if group in biggest_groups_values else "other"
     )
+
+    if order_by_command:
+        order_by_col = order_by_command.split(':')[0]
+        ascending = {'ascending': True, 'descending': False}[
+            order_by_command.split(':')[1]
+        ]
+        state_transactions_df = state_transactions_df.sort_values(
+            by=order_by_col, ascending=ascending
+        )
 
     state_transactions_df["display_category"] = state_transactions_df["category"].map(
         lambda c: f"{get_emoji(c)}{c}"
