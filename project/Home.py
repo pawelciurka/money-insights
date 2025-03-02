@@ -45,7 +45,7 @@ st.write(
 
 file_paths_df = get_file_path_aggregated_df(transactions_df)
 
-event = st.dataframe(
+st.dataframe(
     file_paths_df,
     height=36 * (len(file_paths_df) + 1),
     selection_mode='multi-row',

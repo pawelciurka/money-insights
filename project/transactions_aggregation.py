@@ -85,5 +85,5 @@ def get_file_path_aggregated_df(transactions_df: pd.DataFrame) -> pd.DataFrame:
                 }
             )
         )
-        .sort_values("max_date")
+        .sort_values("max_date", ascending=False)
     )
