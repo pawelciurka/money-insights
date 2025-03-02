@@ -12,14 +12,15 @@ class FrequencyConfig:
     display_name: str  # e.g. : Day
     value_format: str
     label: str  # 'right' or 'left'
+    tree_supported: bool
 
 
 FREQUENCIES = [
-    FrequencyConfig("1D", "Day", "%B %d", "left"),
-    FrequencyConfig("1ME", "Month", "%B %Y", "right"),
-    FrequencyConfig("1Y", "Year", "%Y", "right"),
-    FrequencyConfig("5Y", "5 Years", "%Y", "right"),
-    FrequencyConfig("10Y", "10 Years", "%Y", "right"),
+    FrequencyConfig("1D", "Day", "%B %d", "left", True),
+    FrequencyConfig("1ME", "Month", "%B %Y", "right", True),
+    FrequencyConfig("1Y", "Year", "%Y", "right", True),
+    FrequencyConfig("5Y", "5 Years", "%Y", "right", False),
+    FrequencyConfig("10Y", "10 Years", "%Y", "right", False),
 ]
 
 

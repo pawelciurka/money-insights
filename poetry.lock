@@ -1323,6 +1323,19 @@ watchdog = {version = ">=2.1.5,<7", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-connector-python (>=2.8.0)", "snowflake-snowpark-python[modin] (>=1.17.0)"]
 
 [[package]]
+name = "streamlit-antd-components"
+version = "0.3.2"
+description = "streamlit customer components of Antd Design and Mantine"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "streamlit_antd_components-0.3.2-py3-none-any.whl", hash = "sha256:5ae28496127202ed266ea167649436a15f3d548a4805ee5d992c6fc0fe103fd6"},
+]
+
+[package.dependencies]
+streamlit = ">=1.12.0"
+
+[[package]]
 name = "tenacity"
 version = "9.0.0"
 description = "Retry code until it succeeds"
@@ -1513,4 +1526,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, !=3.9.7"
-content-hash = "2ae11fb903ff33060002ec85a681fdc2e7bd8dcd14f9f13e686f11af7fbd0a7a"
+content-hash = "d1d259f6663c2f3a7f1815cb906e6404cac64447043ce435731d8da5f4f88b35"

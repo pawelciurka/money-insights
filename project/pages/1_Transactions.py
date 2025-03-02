@@ -1,8 +1,11 @@
 from typing import Optional
 import streamlit as st
+import streamlit_antd_components as sac
+
 
 from project.categories import add_category_rule
 from project.dates_utils import get_past_month_start_datetime
+from project.transactions_tree import get_sac_tree_items
 from project.utils import get_emoji
 
 
@@ -132,8 +135,8 @@ with expenses_container:
     else:
         categories = categories_container.multiselect(**multiselect_kwargs)
 
-    transactions_table_tab, barplot_tab = st.tabs(
-        ["Transactions List", "Stacked Bar"],
+    transactions_table_tab, barplot_tab, transactions_tree_tab = st.tabs(
+        ["Transactions List", "Stacked Bar", "Transactions Tree"],
     )
 
     with barplot_tab:
@@ -169,6 +172,10 @@ with expenses_container:
                 ],
                 label_visibility="collapsed",
             )
+
+    with transactions_tree_tab:
+        open_all = st.checkbox(label='open all', value=False)
+        tree_container = st.container()
 
     with n_groups_container:
         n_biggest_groups = st.slider(
@@ -288,3 +295,26 @@ with expenses_container:
                 disabled=not unrecognized_category_selected,
                 help="Select an unrecognized transaction to create a rule based on it",
             )
+
+    with tree_container:
+        nesting_cols = []
+        if group_by_col is not None:
+            nesting_cols.append(group_by_col)
+
+        if frequency.tree_supported:
+            nesting_cols.append(
+                {
+                    'Month': "transaction_date_isostr_month",
+                    "Year": 'transaction_date_isostr_year',
+                    "Day": 'transaction_date_isostr',
+                }.get(frequency.display_name)
+            )
+
+        if not nesting_cols:
+            st.warning('Unsupported group by and frequency combination')
+
+        items = get_sac_tree_items(
+            transactions_df=state_transactions_df, nesting_cols=nesting_cols
+        )
+
+        sac.tree(items, height=1_000_000, width=1000, size='lg', open_all=open_all)

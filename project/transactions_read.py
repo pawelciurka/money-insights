@@ -300,6 +300,12 @@ def add_columns(
     df["transaction_date_isostr"] = df["transaction_date"].map(
         lambda d: d.strftime("%Y-%m-%d")
     )
+    df["transaction_date_isostr_month"] = df["transaction_date"].map(
+        lambda d: d.strftime("%Y-%m")
+    )
+    df["transaction_date_isostr_year"] = df["transaction_date"].map(
+        lambda d: d.strftime("%Y")
+    )
 
     df["amount"] = df["amount"].map(
         lambda x: float(re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", "."))
