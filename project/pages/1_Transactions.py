@@ -175,6 +175,7 @@ with expenses_container:
 
     with transactions_tree_tab:
         open_all = st.checkbox(label='open all', value=False)
+        swap_tree = st.checkbox(label='swap', value=False)
         tree_container = st.container()
 
     with n_groups_container:
@@ -313,8 +314,17 @@ with expenses_container:
         if not nesting_cols:
             st.warning('Unsupported group by and frequency combination')
 
+        if swap_tree:
+            nesting_cols.reverse()
+
         items = get_sac_tree_items(
             transactions_df=state_transactions_df, nesting_cols=nesting_cols
         )
 
-        sac.tree(items, height=1_000_000, width=1000, size='lg', open_all=open_all)
+        sac.tree(
+            items,
+            width=1000,
+            size='lg',
+            open_index=0,
+            open_all=open_all,
+        )
