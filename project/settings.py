@@ -1,6 +1,5 @@
 import os
 import shutil
-from datetime import datetime
 from pathlib import Path
 
 project_dir = os.path.dirname(os.path.dirname(__file__))

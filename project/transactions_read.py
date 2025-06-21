@@ -12,7 +12,7 @@ from enum import Enum
 import logging
 import re
 from project.categories import CategoriesCache, CategoriesRules, CategoryRule
-from project.enums import TransactionColumn
+from project.enums import TransactionColumn, TransactionType
 from project.utils import hash_string, list_files
 import streamlit as st
 
@@ -88,9 +88,11 @@ class Parser:
 
     @staticmethod
     def clean_raw(df):
-        df["title"] = df["title"].astype(str)
-        df["contractor"] = df["contractor"].astype(str)
-        df["transaction_date"] = Parser.convert_transaction_date(df["transaction_date"])
+        df[TransactionColumn.TITLE] = df[TransactionColumn.TITLE].astype(str)
+        df[TransactionColumn.CONTRACTOR] = df[TransactionColumn.CONTRACTOR].astype(str)
+        df[TransactionColumn.TRANSACTION_DATE] = Parser.convert_transaction_date(
+            df[TransactionColumn.TRANSACTION_DATE]
+        )
         return df
 
     def parse_and_validate(self, file_path: str) -> pd.DataFrame:
@@ -102,7 +104,7 @@ class Parser:
             raise AssertionError(err)
 
         # filters
-        df = df[~df["amount"].isna()]
+        df = df[~df[TransactionColumn.AMOUNT].isna()]
 
         return df
 
@@ -186,10 +188,10 @@ class MbankParser(Parser):
             names=[ic.name for ic in input_cols_mbank],
         )
 
-        df["transaction_id"] = df.apply(
+        df[TransactionColumn.TRANSACTION_ID] = df.apply(
             lambda r: hash_string("".join([str(v) for v in r])), axis=1
         )
-        df["account_name"] = "mbank"
+        df[TransactionColumn.ACCOUNT_NAME] = "mbank"
 
         return df
 
@@ -285,29 +287,35 @@ def add_columns(
     categories_cache: CategoriesCache,
 ) -> pd.DataFrame:
     df = df.copy()
-    df["transaction_date"] = df["transaction_date"].map(lambda d: pd.to_datetime(d))
-    df["transaction_date_isostr"] = df["transaction_date"].map(
-        lambda d: d.strftime("%Y-%m-%d")
+    df[TransactionColumn.TRANSACTION_DATE] = df[TransactionColumn.TRANSACTION_DATE].map(
+        lambda d: pd.to_datetime(d)
     )
-    df["transaction_date_isostr_month"] = df["transaction_date"].map(
-        lambda d: d.strftime("%Y-%m")
-    )
-    df["transaction_date_isostr_year"] = df["transaction_date"].map(
-        lambda d: d.strftime("%Y")
-    )
+    df[TransactionColumn.TRANSACTION_DATE_ISOSTR] = df[
+        TransactionColumn.TRANSACTION_DATE
+    ].map(lambda d: d.strftime("%Y-%m-%d"))
+    df[TransactionColumn.TRANSACTION_DATE_ISOSTR_MONTH] = df[
+        TransactionColumn.TRANSACTION_DATE
+    ].map(lambda d: d.strftime("%Y-%m"))
+    df[TransactionColumn.TRANSACTION_DATE_ISOSTR_YEAR] = df[
+        TransactionColumn.TRANSACTION_DATE
+    ].map(lambda d: d.strftime("%Y"))
 
-    df["amount"] = df["amount"].map(
+    df[TransactionColumn.AMOUNT] = df[TransactionColumn.AMOUNT].map(
         lambda x: float(re.sub("(PLN)", "", str(x)).replace(" ", "").replace(",", "."))
     )
-    df["type"] = df["amount"].map(lambda x: "income" if x >= 0 else "outcome")
-    df["amount_abs"] = df["amount"].map(lambda x: abs(x))
-    df["one_group"] = "all"
+    df[TransactionColumn.TYPE] = df[TransactionColumn.AMOUNT].map(
+        lambda x: TransactionType.INCOME if x >= 0 else TransactionType.OUTCOME
+    )
+    df[TransactionColumn.AMOUNT_ABS] = df[TransactionColumn.AMOUNT].map(
+        lambda x: abs(x)
+    )
+    df[TransactionColumn.ONE_GROUP] = "all"
 
     log.info("Setting categories")
 
     def process_row(row):
         category, category_rule_id = categories_cache.get(
-            row['transaction_id'], ("unrecognized", np.NaN)
+            row[TransactionColumn.TRANSACTION_ID], ("unrecognized", np.NaN)
         )
 
         if np.isnan(category_rule_id):
@@ -324,8 +332,8 @@ def add_columns(
 
     category_and_rule_id = df.apply(process_row, axis=1)
 
-    df["category"] = category_and_rule_id.map(lambda r: r[0])
-    df["category_rule_id"] = category_and_rule_id.map(lambda r: r[1])
+    df[TransactionColumn.CATEGORY] = category_and_rule_id.map(lambda r: r[0])
+    df[TransactionColumn.CATEGORY_RULE_ID] = category_and_rule_id.map(lambda r: r[1])
 
     log.info("Saving cache")
     categories_cache.write(df)

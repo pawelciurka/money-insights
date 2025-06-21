@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 import streamlit as st
 from datetime import datetime
+from project.enums import TransactionColumn
 
 log = logging.getLogger(__name__)
 
@@ -18,22 +19,22 @@ def filter_transactions(
     transactions_mask = pd.Series(True, index=transactions_df.index)
     if start_datetime:
         transactions_mask = transactions_mask & (
-            transactions_df["transaction_date"] >= start_datetime
+            transactions_df[TransactionColumn.TRANSACTION_DATE] >= start_datetime
         )
     if end_datetime:
         transactions_mask = transactions_mask & (
-            transactions_df["transaction_date"] <= end_datetime
+            transactions_df[TransactionColumn.TRANSACTION_DATE] <= end_datetime
         )
     if exact_year_and_month:
         year, month = exact_year_and_month
         transactions_mask = transactions_mask & (
-            transactions_df["transaction_date"].map(
+            transactions_df[TransactionColumn.TRANSACTION_DATE].map(
                 lambda d: d.year == year and d.month == month
             )
         )
     if categories:
         transactions_mask = transactions_mask & (
-            transactions_df["category"].isin(categories)
+            transactions_df[TransactionColumn.CATEGORY].isin(categories)
         )
     if types:
         transactions_mask = transactions_mask & (transactions_df["type"].isin(types))

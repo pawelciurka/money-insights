@@ -1,7 +1,7 @@
-from copy import deepcopy
 import pandas as pd
 import streamlit_antd_components as sac
-import streamlit as st
+
+from project.enums import TransactionColumn, TransactionType
 
 
 def _prepare_items_tree(transactions_df: pd.DataFrame, nesting_cols: list[str]):
@@ -38,7 +38,7 @@ def get_sac_tree_items(transactions_df: pd.DataFrame, nesting_cols: list[str]):
         for column, value in zip(nesting_cols, path):
             mask = mask & (transactions_df[column] == value)
 
-        total_amount = sum(transactions_df[mask]['amount'])
+        total_amount = sum(transactions_df[mask][TransactionColumn.AMOUNT])
         n_transactions = sum(mask)
         items_lookup[path].tag = [
             sac.Tag(n_transactions),
@@ -51,10 +51,19 @@ def get_sac_tree_items(transactions_df: pd.DataFrame, nesting_cols: list[str]):
     for group_values, group_transactions_df in transactions_df.groupby(nesting_cols):
         items_lookup[tuple(group_values)].children = [
             sac.TreeItem(
-                f"{t.transaction_date_isostr} | {t.title} | {t.contractor}",
+                " | ".join(
+                    [
+                        t.__getattribute__(TransactionColumn.TRANSACTION_DATE_ISOSTR),
+                        t.__getattribute__(TransactionColumn.TITLE),
+                        t.__getattribute__(TransactionColumn.CONTRACTOR),
+                    ]
+                ),
                 tag=sac.Tag(
                     f"{t.amount_abs:,.2f} zł",
-                    color={'income': 'green', 'outcome': 'yellow'}[t.type],
+                    color={
+                        TransactionType.INCOME: 'green',
+                        TransactionType.OUTCOME: 'yellow',
+                    }[t.type],
                 ),
             )
             for t in group_transactions_df.itertuples()

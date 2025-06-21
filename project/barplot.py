@@ -1,6 +1,8 @@
 import pandas as pd
 import plotly.graph_objs as go
 
+from project.enums import TransactionColumn, TransactionType
+
 
 def get_barplot(
     df_income: pd.DataFrame,
@@ -25,7 +27,7 @@ def get_barplot(
         delta_bar_offset = 0.0
         income_bar_width = 0.4
         delta_bar_width = 0.1
-        income_yaxis = None # misc bug, not obvious solution
+        income_yaxis = None  # misc bug, not obvious solution
     elif view_expense and (view_income or view_delta):
         expense_bar_offset = -0.4
         income_bar_offset = delta_bar_offset = 0.0
@@ -71,8 +73,8 @@ def get_barplot(
                 offsetgroup="1",
                 offset=expense_bar_offset,
                 width=expense_bar_width,
-                legendgroup="outcome",
-                legendgrouptitle_text="outcome",
+                legendgroup=TransactionType.OUTCOME,
+                legendgrouptitle_text=TransactionType.OUTCOME,
                 name=col,
             )
 
@@ -87,8 +89,8 @@ def get_barplot(
                 offsetgroup="2",
                 offset=income_bar_offset,
                 width=income_bar_width,
-                legendgroup="income",
-                legendgrouptitle_text="income",
+                legendgroup=TransactionType.INCOME,
+                legendgrouptitle_text=TransactionType.INCOME,
                 name=col,
             )
 
@@ -97,15 +99,15 @@ def get_barplot(
 
         fig.add_bar(
             x=df_delta.index,
-            y=df_delta['delta'],
+            y=df_delta[TransactionColumn.DELTA],
             # Set the right yaxis depending on the selected product (from enumerate)
             yaxis=f"y3",
             offsetgroup="3",
             offset=delta_bar_offset,
             width=delta_bar_width,
-            legendgroup="delta",
-            legendgrouptitle_text="delta",
-            name='delta',
+            legendgroup=TransactionColumn.DELTA,
+            legendgrouptitle_text=TransactionColumn.DELTA,
+            name=TransactionColumn.DELTA,
             marker={'color': colors},
         )
 

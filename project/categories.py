@@ -1,22 +1,13 @@
 import csv
-import sys
 from dataclasses import dataclass
 from enum import Enum
-from types import SimpleNamespace
 
 import pandas as pd
 import logging
 from project.utils import calculate_md5
+from project.enums import CategoryRuleColumn, TransactionColumn
 
 log = logging.getLogger(__name__)
-
-CSV_COL = SimpleNamespace(
-    rule_id='rule_id',
-    column='column',
-    relation='relation',
-    value='value',
-    category='category',
-)
 
 
 class Relation(Enum):
@@ -67,11 +58,11 @@ class CategoriesRules:
             for condition in rule.conditions:
                 d.append(
                     {
-                        CSV_COL.rule_id: rule.rule_id,
-                        CSV_COL.column: condition.column,
-                        CSV_COL.relation: condition.relation.name,
-                        CSV_COL.value: condition.value,
-                        CSV_COL.category: rule.category,
+                        CategoryRuleColumn.RULE_ID: rule.rule_id,
+                        CategoryRuleColumn.COLUMN: condition.column,
+                        CategoryRuleColumn.RELATION: condition.relation.name,
+                        CategoryRuleColumn.VALUE: condition.value,
+                        CategoryRuleColumn.CATEGORY: rule.category,
                     }
                 )
         return pd.DataFrame(d)
@@ -85,11 +76,11 @@ def read_categories_rules(
     categories_rules_csv_path: str, add_fallback: bool = True
 ) -> CategoriesRules:
     categories_definitions_cols = [
-        CSV_COL.rule_id,
-        CSV_COL.column,
-        CSV_COL.relation,
-        CSV_COL.value,
-        CSV_COL.category,
+        CategoryRuleColumn.RULE_ID,
+        CategoryRuleColumn.COLUMN,
+        CategoryRuleColumn.RELATION,
+        CategoryRuleColumn.VALUE,
+        CategoryRuleColumn.CATEGORY,
     ]
     log.info(f"Reading categories rules from {categories_rules_csv_path}")
     df = pd.read_csv(categories_rules_csv_path, usecols=categories_definitions_cols)
@@ -98,20 +89,20 @@ def read_categories_rules(
     categories_rules = CategoriesRules(
         items=items, csv_md5=calculate_md5(categories_rules_csv_path)
     )
-    for rule_id, rule_conditions_df in df.groupby(CSV_COL.rule_id):
-        if len(set(rule_conditions_df[CSV_COL.category])) != 1:
+    for rule_id, rule_conditions_df in df.groupby(CategoryRuleColumn.RULE_ID):
+        if len(set(rule_conditions_df[CategoryRuleColumn.CATEGORY])) != 1:
             raise AssertionError(
                 f"Categories for rule {rule_id} differ between conditions!"
             )
 
-        category = rule_conditions_df[CSV_COL.category].iloc[0]
+        category = rule_conditions_df[CategoryRuleColumn.CATEGORY].iloc[0]
         rule_conditions = []
         for _, condition in rule_conditions_df.iterrows():
             rule_conditions.append(
                 Condition(
-                    column=condition[CSV_COL.column],
-                    relation=Relation[condition[CSV_COL.relation]],
-                    value=condition[CSV_COL.value],
+                    column=condition[CategoryRuleColumn.COLUMN],
+                    relation=Relation[condition[CategoryRuleColumn.RELATION]],
+                    value=condition[CategoryRuleColumn.VALUE],
                 )
             )
 
@@ -170,7 +161,11 @@ def save_categories_rules_as_csv(
 
 
 class CategoriesCache(dict):
-    CSV_COLS = ["transaction_id", "category", "category_rule_id"]
+    _mandatory_csv_cols = [
+        TransactionColumn.TRANSACTION_ID,
+        TransactionColumn.CATEGORY,
+        TransactionColumn.CATEGORY_RULE_ID,
+    ]
 
     def __init__(self, *, file_path) -> None:
         self.file_path = file_path
@@ -179,19 +174,19 @@ class CategoriesCache(dict):
     def read(self) -> None:
         try:
             log.info(f"Trying to read categories cache from {self.file_path}")
-            df = pd.read_csv(self.file_path, usecols=self.CSV_COLS)
+            df = pd.read_csv(self.file_path, usecols=self._mandatory_csv_cols)
         except:
             log.info(f"Couldn't read categories cache from {self.file_path}")
             return
         for r in df.itertuples():
-            self[r.__getattribute__(self.CSV_COLS[0])] = (
-                r.__getattribute__(self.CSV_COLS[1]),
-                r.__getattribute__(self.CSV_COLS[2]),
+            self[r.__getattribute__(TransactionColumn.TRANSACTION_ID)] = (
+                r.__getattribute__(TransactionColumn.CATEGORY),
+                r.__getattribute__(TransactionColumn.CATEGORY_RULE_ID),
             )
         logging.info(f"Read categories for {len(df)} transactions")
 
     def write(self, transactions_df: pd.DataFrame) -> None:
-        df = transactions_df[self.CSV_COLS].copy()
+        df = transactions_df[self._mandatory_csv_cols].copy()
         df.to_csv(self.file_path, index=False)
 
     @property
@@ -199,4 +194,5 @@ class CategoriesCache(dict):
         return bool(len(self) == 0)
 
     def __hash__(self):
+        # remove?
         return self.rules_csv_md5

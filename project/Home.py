@@ -1,5 +1,6 @@
 import logging
 import streamlit as st
+from project.enums import TransactionColumn
 from project.settings import TRANSACTIONS_FILES_DIR
 from project.transactions_aggregation import get_file_path_aggregated_df
 from project.utils import get_emoji
@@ -47,7 +48,7 @@ st.dataframe(
     file_paths_df,
     height=36 * (len(file_paths_df) + 1),
     selection_mode='multi-row',
-    key='source_file_path',
+    key=TransactionColumn.SOURCE_FILE_PATH,
     on_select='rerun',
     use_container_width=True,
 )

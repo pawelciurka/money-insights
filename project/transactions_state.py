@@ -3,6 +3,7 @@ import pandas as pd
 from project.transactions_aggregation import get_significant_group_values
 from project.transactions_filters import filter_transactions_date_range
 from project.utils import get_emoji
+from project.enums import TransactionColumn
 
 
 def get_state_transactions_df(
@@ -21,7 +22,7 @@ def get_state_transactions_df(
     )
     # filter by category
     state_transactions_df = state_transactions_df[
-        state_transactions_df["category"].isin(categories)
+        state_transactions_df[TransactionColumn.CATEGORY].isin(categories)
     ]
 
     # set group_value column for N biggest groups
@@ -30,9 +31,9 @@ def get_state_transactions_df(
         group_by_col=group_by_col,
         n_biggest_groups=n_biggest_groups,
     )
-    state_transactions_df["group_value"] = state_transactions_df[group_by_col].map(
-        lambda group: group if group in biggest_groups_values else "other"
-    )
+    state_transactions_df[TransactionColumn.GROUP_VALUE] = state_transactions_df[
+        group_by_col
+    ].map(lambda group: group if group in biggest_groups_values else "other")
 
     if order_by_command:
         order_by_col = order_by_command.split(':')[0]
@@ -43,11 +44,11 @@ def get_state_transactions_df(
             by=order_by_col, ascending=ascending
         )
 
-    state_transactions_df["display_category"] = state_transactions_df["category"].map(
-        lambda c: f"{get_emoji(c)}{c}"
-    )
-    state_transactions_df["display_type"] = state_transactions_df["type"].map(
-        lambda t: f"{t}{get_emoji(t)}"
-    )
+    state_transactions_df[TransactionColumn.DISPLAY_CATEGORY] = state_transactions_df[
+        TransactionColumn.CATEGORY
+    ].map(lambda c: f"{get_emoji(c)}{c}")
+    state_transactions_df[TransactionColumn.DISPLAY_TYPE] = state_transactions_df[
+        TransactionColumn.TYPE
+    ].map(lambda t: f"{t}{get_emoji(t)}")
 
     return state_transactions_df
