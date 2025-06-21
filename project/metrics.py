@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from project.transactions_filters import filter_transactions
-from project.transactions_read import TRANSACTION_COLUMNS
+from project.enums import TransactionColumn
 from project.dates_utils import get_past_month_start_datetime
 import streamlit as st
 
@@ -118,9 +118,7 @@ def get_day_of_last_transaction(
         type='outcome',
     )
     return (
-        month_transaction_df[TRANSACTION_COLUMNS.TRANSACTION_DATE]
-        .sort_values()
-        .iloc[-1]
+        month_transaction_df[TransactionColumn.TRANSACTION_DATE].sort_values().iloc[-1]
     ).day
 
 

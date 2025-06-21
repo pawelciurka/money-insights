@@ -12,7 +12,7 @@ from enum import Enum
 import logging
 import re
 from project.categories import CategoriesCache, CategoriesRules, CategoryRule
-
+from project.enums import TransactionColumn
 from project.utils import hash_string, list_files
 import streamlit as st
 
@@ -38,39 +38,28 @@ class CsvFile:
     source_type: SourceType
 
 
-TRANSACTION_COLUMNS = SimpleNamespace(
-    TRANSACTION_DATE='transaction_date',
-    CONTRACTOR='contractor',
-    TITLE='title',
-    TRANSACTION_ID='transaction_id',
-    AMOUNT='amount',
-    ACCOUNT_NAME='account_name',
-    SOURCE_FILE_PATH="source_file_path",
-    SOURCE_TYPE="source_type",
-)
-
 input_cols_ing: list[CsvCol] = [
-    CsvCol(0, TRANSACTION_COLUMNS.TRANSACTION_DATE),
-    CsvCol(2, TRANSACTION_COLUMNS.CONTRACTOR),
-    CsvCol(3, TRANSACTION_COLUMNS.TITLE),
-    CsvCol(7, TRANSACTION_COLUMNS.TRANSACTION_ID),
-    CsvCol(8, TRANSACTION_COLUMNS.AMOUNT),
-    CsvCol(14, TRANSACTION_COLUMNS.ACCOUNT_NAME),
+    CsvCol(0, TransactionColumn.TRANSACTION_DATE),
+    CsvCol(2, TransactionColumn.CONTRACTOR),
+    CsvCol(3, TransactionColumn.TITLE),
+    CsvCol(7, TransactionColumn.TRANSACTION_ID),
+    CsvCol(8, TransactionColumn.AMOUNT),
+    CsvCol(14, TransactionColumn.ACCOUNT_NAME),
 ]
 input_cols_mbank: list[CsvCol] = [
-    CsvCol(0, TRANSACTION_COLUMNS.TRANSACTION_DATE),
-    CsvCol(3, TRANSACTION_COLUMNS.TITLE),
-    CsvCol(4, TRANSACTION_COLUMNS.CONTRACTOR),
-    CsvCol(6, TRANSACTION_COLUMNS.AMOUNT),
+    CsvCol(0, TransactionColumn.TRANSACTION_DATE),
+    CsvCol(3, TransactionColumn.TITLE),
+    CsvCol(4, TransactionColumn.CONTRACTOR),
+    CsvCol(6, TransactionColumn.AMOUNT),
 ]
 
 mandatory_out_fields = {
-    TRANSACTION_COLUMNS.TRANSACTION_DATE,
-    TRANSACTION_COLUMNS.CONTRACTOR,
-    TRANSACTION_COLUMNS.TRANSACTION_ID,
-    TRANSACTION_COLUMNS.TITLE,
-    TRANSACTION_COLUMNS.AMOUNT,
-    TRANSACTION_COLUMNS.ACCOUNT_NAME,
+    TransactionColumn.TRANSACTION_DATE,
+    TransactionColumn.CONTRACTOR,
+    TransactionColumn.TRANSACTION_ID,
+    TransactionColumn.TITLE,
+    TransactionColumn.AMOUNT,
+    TransactionColumn.ACCOUNT_NAME,
 }
 
 
@@ -229,8 +218,8 @@ def parse_csv_files_as_df(csv_files: list[CsvFile]) -> pd.DataFrame:
         log.info(f"Parsing {csv_file}")
         parser = PARSER_BY_SOURCE_TYPE[csv_file.source_type.name]()
         df = parser.parse_and_validate(csv_file.path)
-        df[TRANSACTION_COLUMNS.SOURCE_FILE_PATH] = csv_file.relative_path
-        df[TRANSACTION_COLUMNS.SOURCE_TYPE] = str(csv_file.source_type.name)
+        df[TransactionColumn.SOURCE_FILE_PATH] = csv_file.relative_path
+        df[TransactionColumn.SOURCE_TYPE] = str(csv_file.source_type.name)
         log.info(f"{len(df)} transaction read from {csv_file.path}")
         dfs.append(df)
 

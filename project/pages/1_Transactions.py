@@ -20,7 +20,7 @@ from project.transactions_aggregation import (
     get_time_aggregated_summarized_delta_df,
     get_time_aggregated_transactions_df,
 )
-from project.transactions_read import TRANSACTION_COLUMNS
+from project.transactions_read import TransactionColumn
 from project.barplot import get_barplot
 from project.app_data import read_fresh_data
 
@@ -39,9 +39,9 @@ def create_category_rule(transaction_row: pd.Series):
     column = st.selectbox(
         "Column",
         options=[
-            TRANSACTION_COLUMNS.CONTRACTOR,
-            TRANSACTION_COLUMNS.TITLE,
-            TRANSACTION_COLUMNS.TRANSACTION_ID,
+            TransactionColumn.CONTRACTOR,
+            TransactionColumn.TITLE,
+            TransactionColumn.TRANSACTION_ID,
         ],
         index=0,
     )
@@ -97,7 +97,7 @@ with expenses_container:
     with start_date_container:
         start_year = NOW.year if NOW.month > 1 else NOW.year - 1
         start_date = st.date_input(
-            "Start Date", value=get_past_month_start_datetime(n_months_back=2)
+            "Start Date", value=get_past_month_start_datetime(n_months_back=1)
         )
         start_date = datetime.combine(start_date, datetime.min.time())
     with end_date_container:

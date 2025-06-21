@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
-from project.transactions_read import TRANSACTION_COLUMNS
+from project.enums import TransactionColumn
 
 
 @dataclass
@@ -75,11 +75,11 @@ def get_significant_group_values(
 
 def get_file_path_aggregated_df(transactions_df: pd.DataFrame) -> pd.DataFrame:
     return (
-        transactions_df.groupby(TRANSACTION_COLUMNS.SOURCE_FILE_PATH)
+        transactions_df.groupby(TransactionColumn.SOURCE_FILE_PATH)
         .apply(
             lambda _df: pd.Series(
                 {
-                    "source_type": set(_df[TRANSACTION_COLUMNS.SOURCE_TYPE]),
+                    "source_type": set(_df[TransactionColumn.SOURCE_TYPE]),
                     'n_transactions': len(_df),
                     'min_date': min(_df['transaction_date_isostr']),
                     'max_date': max(_df['transaction_date_isostr']),
