@@ -49,7 +49,7 @@ def get_emoji(name: str):
         "job": "💼",
         # "loans": "💳",
         "unrecognized": "❓",
-        "income": "🔺",
-        "outcome": "🔻",
+        "income": "🟢",
+        "outcome": "🔴",
         "favicon": "💳",
     }.get(name, "")

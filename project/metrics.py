@@ -82,6 +82,14 @@ def compute_total_monthly_expense(
     )
 
 
+def compute_total_monthly_savings(
+    transactions_df: pd.DataFrame, year_and_month: tuple[int, int]
+):
+    return compute_total_monthly_income(
+        transactions_df, year_and_month
+    ) - compute_total_monthly_expense(transactions_df, year_and_month)
+
+
 def compute_total_monthly_n_income_transactions(
     transactions_df: pd.DataFrame, year_and_month: tuple[int, int]
 ):
@@ -116,7 +124,29 @@ def get_day_of_last_transaction(
     ).day
 
 
-def get_metrics(transactions_df: pd.DataFrame, n_months_back=1) -> list[Metric]:
+def get_metric(
+    transactions_df: pd.DataFrame,
+    year_and_month: tuple[int, int],
+    reference_year_and_month: tuple[int, int],
+    func: callable,
+    delta_inverse: bool,
+    name: str,
+    **func_args,
+) -> Metric:
+    pass
+
+    value = func(transactions_df, year_and_month, **func_args)
+    reference_value = func(transactions_df, reference_year_and_month, **func_args)
+
+    return Metric(
+        name=name,
+        value=value,
+        delta=value - reference_value,
+        delta_inverse=delta_inverse,
+    )
+
+
+def get_metrics(transactions_df: pd.DataFrame, n_months_back: int) -> list[Metric]:
     last_month_datetime = get_past_month_start_datetime(n_months_back=n_months_back)
     second_to_last_month_datetime = get_past_month_start_datetime(
         n_months_back=n_months_back + 1
@@ -127,40 +157,6 @@ def get_metrics(transactions_df: pd.DataFrame, n_months_back=1) -> list[Metric]:
         second_to_last_month_datetime.month,
     )
 
-    last_month_income = compute_total_monthly_income(
-        transactions_df=transactions_df, year_and_month=last_month_year_and_month
-    )
-
-    second_to_last_month_income = compute_total_monthly_income(
-        transactions_df=transactions_df,
-        year_and_month=second_to_last_month_year_and_month,
-    )
-
-    last_month_expense = compute_total_monthly_expense(
-        transactions_df=transactions_df, year_and_month=last_month_year_and_month
-    )
-
-    second_to_last_month_expense = compute_total_monthly_expense(
-        transactions_df=transactions_df,
-        year_and_month=second_to_last_month_year_and_month,
-    )
-
-    last_month_savings = last_month_income - last_month_expense
-    second_to_last_month_savings = (
-        second_to_last_month_income - second_to_last_month_expense
-    )
-
-    last_month_n_expense_transactions = compute_total_monthly_n_expense_transactions(
-        transactions_df=transactions_df, year_and_month=last_month_year_and_month
-    )
-
-    second_to_last_n_expense_transactions = (
-        compute_total_monthly_n_expense_transactions(
-            transactions_df=transactions_df,
-            year_and_month=second_to_last_month_year_and_month,
-        )
-    )
-
     last_month_n_unrecognized_expense_transactions = (
         compute_total_monthly_n_expense_transactions(
             transactions_df=transactions_df,
@@ -169,46 +165,44 @@ def get_metrics(transactions_df: pd.DataFrame, n_months_back=1) -> list[Metric]:
         )
     )
 
-    second_to_last_n_unrecognized_expense_transactions = (
-        compute_total_monthly_n_expense_transactions(
-            transactions_df=transactions_df,
-            year_and_month=second_to_last_month_year_and_month,
-            category='unrecognized',
-        )
-    )
-
     metrics = [
-        Metric(
+        get_metric(
+            transactions_df=transactions_df,
+            year_and_month=last_month_year_and_month,
+            reference_year_and_month=second_to_last_month_year_and_month,
+            func=compute_total_monthly_income,
+            delta_inverse=False,
             name=f"{last_month_datetime.strftime('%B %Y')} total income",
-            value=last_month_income,
-            delta=last_month_income - second_to_last_month_income,
-            delta_inverse=False,
         ),
-        Metric(
+        get_metric(
+            transactions_df=transactions_df,
+            year_and_month=last_month_year_and_month,
+            reference_year_and_month=second_to_last_month_year_and_month,
+            func=compute_total_monthly_expense,
+            delta_inverse=True,
             name=f"{last_month_datetime.strftime('%B %Y')} total expenses",
-            value=last_month_expense,
-            delta=last_month_expense - second_to_last_month_expense,
-            delta_inverse=True,
         ),
-        Metric(
-            name=f"{last_month_datetime.strftime('%B %Y')} total savings (income - expenses)",
-            value=last_month_savings,
-            delta=last_month_savings - second_to_last_month_savings,
+        get_metric(
+            transactions_df=transactions_df,
+            year_and_month=last_month_year_and_month,
+            reference_year_and_month=second_to_last_month_year_and_month,
+            func=compute_total_monthly_savings,
             delta_inverse=False,
+            name=f"{last_month_datetime.strftime('%B %Y')} total savings",
         ),
-        Metric(
-            name=f"{last_month_datetime.strftime('%B %Y')} expense transactions",
-            value=last_month_n_expense_transactions,
-            delta=last_month_n_expense_transactions
-            - second_to_last_n_expense_transactions,
+        get_metric(
+            transactions_df=transactions_df,
+            year_and_month=last_month_year_and_month,
+            reference_year_and_month=second_to_last_month_year_and_month,
+            func=compute_total_monthly_n_expense_transactions,
             delta_inverse=True,
+            name=f"{last_month_datetime.strftime('%B %Y')} number of transactions",
         ),
         Metric(
             name=f"{last_month_datetime.strftime('%B %Y')} not recognized expense transactions",
             value=last_month_n_unrecognized_expense_transactions,
-            delta=last_month_n_unrecognized_expense_transactions
-            - second_to_last_n_unrecognized_expense_transactions,
-            delta_inverse=True,
+            delta=None,
+            delta_inverse=None,
         ),
         Metric(
             name=f"{last_month_datetime.strftime('%B %Y')} day of last recorded transaction",

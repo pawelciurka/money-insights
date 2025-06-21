@@ -30,8 +30,6 @@ st.write(
 # Optional: Add a placeholder for future updates
 st.info("More features are coming soon! Stay tuned.")
 
-read_fresh_data()
-
 _, transactions_df = read_fresh_data()
 
 
