@@ -12,6 +12,7 @@ from enum import Enum
 import logging
 import re
 from project.categories import CategoriesCache, CategoriesRules, CategoryRule
+from project.constants import UNRECOGNIZED
 from project.enums import TransactionColumn, TransactionType
 from project.utils import hash_string, list_files
 import streamlit as st
@@ -48,6 +49,7 @@ input_cols_ing: list[CsvCol] = [
 ]
 input_cols_mbank: list[CsvCol] = [
     CsvCol(0, TransactionColumn.TRANSACTION_DATE),
+    CsvCol(2, TransactionColumn.DESCRIPTION),
     CsvCol(3, TransactionColumn.TITLE),
     CsvCol(4, TransactionColumn.CONTRACTOR),
     CsvCol(6, TransactionColumn.AMOUNT),
@@ -315,7 +317,7 @@ def add_columns(
 
     def process_row(row):
         category, category_rule_id = categories_cache.get(
-            row[TransactionColumn.TRANSACTION_ID], ("unrecognized", np.NaN)
+            row[TransactionColumn.TRANSACTION_ID], (UNRECOGNIZED, np.NaN)
         )
 
         if np.isnan(category_rule_id):
@@ -327,7 +329,7 @@ def add_columns(
                     category_rule.rule_id,
                 )
             else:
-                category, category_rule_id = "unrecognized", None
+                category, category_rule_id = UNRECOGNIZED, None
         return category, category_rule_id
 
     category_and_rule_id = df.apply(process_row, axis=1)

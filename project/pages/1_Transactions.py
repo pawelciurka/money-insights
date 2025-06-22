@@ -4,6 +4,7 @@ import streamlit_antd_components as sac
 
 
 from project.categories import add_category_rule
+from project.constants import UNRECOGNIZED
 from project.dates_utils import get_past_month_start_datetime
 from project.transactions_tree import get_sac_tree_items
 from project.utils import get_emoji
@@ -42,6 +43,7 @@ def create_category_rule(transaction_row: pd.Series):
             TransactionColumn.CONTRACTOR,
             TransactionColumn.TITLE,
             TransactionColumn.TRANSACTION_ID,
+            TransactionColumn.DESCRIPTION,
         ],
         index=0,
     )
@@ -109,10 +111,10 @@ with expenses_container:
     pills_container = st.container()
 
     with pills_container:
-        categories_pills_labels = {0: 'all categories', 1: 'unrecognized only'}
+        categories_pills_labels = {0: 'all categories', 1: f'{UNRECOGNIZED} only'}
         categories_lists = {
             0: [c for c in all_categories if c != "own-transfer"],
-            1: ['unrecognized'],
+            1: [UNRECOGNIZED],
         }
         selected_category_pill_index = st.pills(
             label='categories pills',
@@ -281,7 +283,7 @@ with expenses_container:
                 False
                 if not row_selected
                 else state_transactions_df.iloc[selected_row_index]["category"]
-                == "unrecognized"
+                == UNRECOGNIZED
             )
             st.button(
                 "Create category rule",

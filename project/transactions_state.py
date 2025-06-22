@@ -4,8 +4,10 @@ from project.transactions_aggregation import get_significant_group_values
 from project.transactions_filters import filter_transactions_date_range
 from project.utils import get_emoji
 from project.enums import TransactionColumn
+import streamlit as st
 
 
+@st.cache_data
 def get_state_transactions_df(
     all_transactions_df: pd.DataFrame,
     categories: list[str],

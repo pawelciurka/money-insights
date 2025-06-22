@@ -4,6 +4,7 @@ from enum import Enum
 
 import pandas as pd
 import logging
+from project.constants import UNRECOGNIZED
 from project.utils import calculate_md5
 from project.enums import CategoryRuleColumn, TransactionColumn
 
@@ -117,7 +118,7 @@ def read_categories_rules(
         items.append(
             CategoryRule(
                 rule_id=None,
-                category="unrecognized",
+                category=UNRECOGNIZED,
                 conditions=[Condition("title", Relation.contains, "")],
             )
         )

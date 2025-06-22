@@ -1,6 +1,8 @@
 import hashlib
 import os
 
+from project.constants import UNRECOGNIZED
+
 
 def hash_string(string: str) -> str:
     # Create a hash object
@@ -48,7 +50,7 @@ def get_emoji(name: str):
         "education": "🎓",
         "job": "💼",
         # "loans": "💳",
-        "unrecognized": "❓",
+        UNRECOGNIZED: "❓",
         "income": "🟢",
         "outcome": "🔴",
         "favicon": "💳",

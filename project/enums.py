@@ -11,6 +11,7 @@ class TransactionColumn(StrEnum):
     TRANSACTION_DATE_ISOSTR = 'transaction_date_isostr'
     TRANSACTION_DATE_ISOSTR_MONTH = 'transaction_date_isostr_month'
     TRANSACTION_DATE_ISOSTR_YEAR = 'transaction_date_isostr_year'
+    DESCRIPTION = "description"
 
     CATEGORY = "category"
     CATEGORY_RULE_ID = "category_rule_id"

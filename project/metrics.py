@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import pandas as pd
 
+from project.constants import UNRECOGNIZED
 from project.transactions_filters import filter_transactions
 from project.enums import TransactionColumn
 from project.dates_utils import get_past_month_start_datetime
@@ -159,7 +160,7 @@ def get_metrics(transactions_df: pd.DataFrame, n_months_back: int) -> list[Metri
         compute_total_monthly_n_expense_transactions(
             transactions_df=transactions_df,
             year_and_month=last_month_year_and_month,
-            category='unrecognized',
+            category=UNRECOGNIZED,
         )
     )
 
